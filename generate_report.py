@@ -192,19 +192,21 @@ def ai_generate(recent_arts, tl_arts, top_s, top_u):
     tl_items= '\n'.join([f"- [{a['published']}] {a['title']}" for a in tl_arts[:60]]) or recent
 
     # 논지 요약
-    r1 = client.messages.create(model='claude-haiku-4-5-20251001', max_tokens=500,
+    r1 = client.messages.create(model='claude-haiku-4-5-20251001', max_tokens=600,
         messages=[{'role':'user','content':f"""삼성전자 노사 갈등 기사 제목들입니다.
 
 [삼성측] {s_items}
 [노조측] {u_items}
 
-각 측 주요 논지를 2~3문장 요약. 형식:
-삼성측논지: (요약)
-노조측논지: (요약)"""}])
+각 측 주요 논지를 2~3문장으로 요약하세요. 반드시 아래 형식 그대로 한 줄씩 출력하세요:
+삼성측논지: (요약문)
+노조측논지: (요약문)"""}])
     s_sum = u_sum = ''
-    for line in r1.content[0].text.splitlines():
-        if line.startswith('삼성측논지:'): s_sum = line.split(':',1)[1].strip()
-        if line.startswith('노조측논지:'): u_sum = line.split(':',1)[1].strip()
+    raw1 = r1.content[0].text
+    m = re.search(r'삼성측논지\s*[:\s]\s*(.+?)(?=\n노조측논지|\Z)', raw1, re.DOTALL)
+    if m: s_sum = m.group(1).strip().replace('\n', ' ')
+    m = re.search(r'노조측논지\s*[:\s]\s*(.+?)$', raw1, re.DOTALL)
+    if m: u_sum = m.group(1).strip().replace('\n', ' ')
 
     # 팩트 + 타임라인
     r2 = client.messages.create(model='claude-haiku-4-5-20251001', max_tokens=900,
@@ -249,9 +251,93 @@ def save_trend(now_str, s_pct, u_pct):
     key = now_str[:13]  # YYYY-MM-DD HH
     history = [h for h in history if h.get('time','')[:13] != key]
     history.append({'time': now_str, 'samsung_pct': s_pct, 'union_pct': u_pct})
-    history = history[-60:]
+    history = history[-200:]
     with open(TREND_FILE, 'w', encoding='utf-8') as f:
         json.dump(history, f, ensure_ascii=False)
+
+# ── 역사 데이터 백필 (2026-02-13~) ───────────────────────────────
+TREND_START = datetime(2026, 2, 13)
+
+def backfill_trend():
+    """첫 실행 시 2026-02-13부터 현재까지 주별 추이를 백필"""
+    if os.path.exists(TREND_FILE):
+        try:
+            with open(TREND_FILE, encoding='utf-8') as f:
+                history = json.load(f)
+            if any(h.get('time', '')[:10] <= '2026-02-20' for h in history):
+                return  # 이미 백필됨
+        except: pass
+
+    print('  역사 추이 백필 중 (2026-02-13~)...')
+    FALLBACK_S = ['강행','불법','방해','차질','내홍','이탈','손배','위법']
+    FALLBACK_U = ['탄압','착취','갑질','차별','부당','침해','파업권','헌법']
+    history_data = []
+    week_start = TREND_START
+    now = datetime.now()
+
+    while week_start < now - timedelta(days=3):
+        week_end = week_start + timedelta(days=7)
+        after_str  = week_start.strftime('%Y-%m-%d')
+        before_str = week_end.strftime('%Y-%m-%d')
+        feeds = [
+            f'https://news.google.com/rss/search?q={_enc(f"삼성 노조 파업 after:{after_str} before:{before_str}")}&hl=ko&gl=KR&ceid=KR:ko',
+            f'https://news.google.com/rss/search?q={_enc(f"삼성전자 노조 after:{after_str} before:{before_str}")}&hl=ko&gl=KR&ceid=KR:ko',
+        ]
+        s_scores, u_scores = [], []
+        seen = set()
+        for url in feeds:
+            try:
+                feed = feedparser.parse(url, request_headers={'User-Agent': 'Mozilla/5.0'})
+                for e in feed.entries[:40]:
+                    link = e.get('link', '')
+                    if link in seen: continue
+                    seen.add(link)
+                    try:    pub = datetime(*e.published_parsed[:6])
+                    except: continue
+                    if not (week_start <= pub < week_end): continue
+                    title = strip_html(e.get('title', ''))
+                    full  = title + ' ' + strip_html(e.get('summary', ''))
+                    if not is_relevant(full): continue
+                    s, u = score(full)
+                    if s == 0 and u == 0:
+                        tl = title.lower()
+                        if   any(k in tl for k in FALLBACK_S): s = 1
+                        elif any(k in tl for k in FALLBACK_U): u = 1
+                        else: continue
+                    if   s > u: s_scores.append(s)
+                    elif u > s: u_scores.append(u)
+                    elif s > 0: s_scores.append(s); u_scores.append(u)
+            except: pass
+
+        total_s = sum(s_scores) + len(s_scores) * 3
+        total_u = sum(u_scores) + len(u_scores) * 3
+        total   = total_s + total_u
+        if total > 0:
+            s_pct = round(total_s / total * 100)
+            history_data.append({
+                'time': week_start.strftime('%Y-%m-%d 12:00:00'),
+                'samsung_pct': s_pct, 'union_pct': 100 - s_pct
+            })
+            print(f'    {after_str}: 삼성{s_pct}% / 노조{100-s_pct}% ({len(s_scores)+len(u_scores)}건)')
+        week_start = week_end
+
+    if history_data:
+        existing = []
+        if os.path.exists(TREND_FILE):
+            try:
+                with open(TREND_FILE, encoding='utf-8') as f:
+                    existing = json.load(f)
+            except: pass
+        merged = history_data + existing
+        merged.sort(key=lambda x: x['time'])
+        seen_keys, deduped = set(), []
+        for h in merged:
+            k = h['time'][:13]
+            if k not in seen_keys:
+                seen_keys.add(k); deduped.append(h)
+        with open(TREND_FILE, 'w', encoding='utf-8') as f:
+            json.dump(deduped, f, ensure_ascii=False)
+        print(f'  백필 완료: {len(history_data)}개 주별 포인트 추가')
 
 # ── HTML 생성 ─────────────────────────────────────────────────────
 def build_html(data, trend_history):
@@ -514,7 +600,8 @@ function render(){{
   document.getElementById('artU').innerHTML = artHTML(d.union,'union');
   // trend chart
   if(TREND&&TREND.length>1){{
-    const labels = TREND.map(h=>h.time.slice(5,16));
+    // 데이터가 많으면 날짜만, 적으면 날짜+시간
+    const labels = TREND.map(h=>TREND.length>30 ? h.time.slice(5,10) : h.time.slice(5,16));
     new Chart(document.getElementById('trendChart').getContext('2d'),{{
       type:'line',
       data:{{labels,datasets:[
@@ -556,6 +643,9 @@ def main():
     print('분류 중...')
     top_s, top_u, s_pct, u_pct, s_cnt, u_cnt = classify(arts)
     print(f'  삼성측 {s_cnt}건 / 노조측 {u_cnt}건 | {s_pct}:{u_pct}')
+
+    print('역사 추이 백필 확인 중...')
+    backfill_trend()
 
     print('Claude 요약 생성 중...')
     s_sum, u_sum, facts, timeline = ai_generate(arts, tl_arts, top_s, top_u)
