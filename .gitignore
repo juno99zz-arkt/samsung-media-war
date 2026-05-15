@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+news_cache.json
+trend_history.json
+stdout.txt
+stderr.txt
+tunnel_out.txt
+tunnel_err.txt
+logs/
+cloudflared.exe
