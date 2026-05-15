@@ -213,7 +213,9 @@ def fetch_jeonsamno():
         print(f'[전삼노] {e}')
         return []
 
-# ── 유튜브 수집 ──────────────────────────────────────────────────
+# ── 유튜브 수집 (2026-02-01 이후, 조회수 기준) ──────────────────
+YT_CUTOFF = '20260201'   # 2026년 2월 이후만 포함
+
 def fetch_youtube_videos():
     try:
         from yt_dlp import YoutubeDL
@@ -229,19 +231,20 @@ def fetch_youtube_videos():
     for q in YT_QUERIES:
         try:
             with YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(f'ytsearch15:{q}', download=False)
+                info = ydl.extract_info(f'ytsearch30:{q}', download=False)
                 for e in (info.get('entries') or []):
                     if not e: continue
                     vid_id = e.get('id', '')
                     if not vid_id or vid_id in seen: continue
                     seen.add(vid_id)
+                    # 2026-02-01 이전 영상 제외
+                    upload_raw = e.get('upload_date', '') or ''
+                    if upload_raw and upload_raw < YT_CUTOFF: continue
                     title = e.get('title', '')
                     desc  = e.get('description', '') or ''
                     full  = title + ' ' + desc
                     if not any(k in full.lower() for k in ['삼성', 'samsung']): continue
-                    upload_date = e.get('upload_date', '') or ''
-                    if len(upload_date) == 8:
-                        upload_date = f'{upload_date[:4]}-{upload_date[4:6]}-{upload_date[6:]}'
+                    upload_date = f'{upload_raw[:4]}-{upload_raw[4:6]}-{upload_raw[6:]}' if len(upload_raw)==8 else upload_raw
                     results.append({
                         'title':       title,
                         'url':         f'https://www.youtube.com/watch?v={vid_id}',
@@ -253,7 +256,9 @@ def fetch_youtube_videos():
                     })
         except Exception as ex:
             print(f'[YT] {q[:30]}: {ex}')
-    print(f'  유튜브 {len(results)}건 수집')
+    # 조회수 내림차순 정렬 후 중복 없이 반환
+    results.sort(key=lambda x: -(x['view_count'] or 0))
+    print(f'  유튜브 {len(results)}건 수집 (2026-02~ 기준)')
     return results
 
 # 편향 성향이 알려진 유튜브 채널 (채널명 substring 매칭)
@@ -276,14 +281,14 @@ def classify_youtube(videos):
         elif u > s: u_list.append((item, u, vc))
         elif s > 0: s_list.append((item, s, vc)); u_list.append((item, u, vc))
 
-    s_list.sort(key=lambda x: -x[2])
+    s_list.sort(key=lambda x: -x[2])   # 조회수 내림차순
     u_list.sort(key=lambda x: -x[2])
 
     def power(lst): return sum(sc for _, sc, _ in lst) + len(lst) * 3
     sp, up = power(s_list), power(u_list)
     total  = sp + up
     yt_s_pct = round(sp / total * 100) if total else 50
-    return ([a for a, _, _ in s_list[:3]], [a for a, _, _ in u_list[:3]],
+    return ([a for a, _, _ in s_list[:5]], [a for a, _, _ in u_list[:5]],
             len(s_list), len(u_list), yt_s_pct, 100 - yt_s_pct)
 
 # ── 분류 ─────────────────────────────────────────────────────────
@@ -325,14 +330,13 @@ def classify(articles):
     return top_s, top_u, s_pct, 100 - s_pct, len(s_list), len(u_list), s_media, u_media
 
 # ── Claude API ────────────────────────────────────────────────────
-def ai_generate(recent_arts, tl_arts, top_s, top_u, jsn_posts):
+def ai_generate(recent_arts, tl_arts, top_s, top_u):
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
     s_items  = '\n'.join([f"- {a['title']}" for a in top_s]) or '(없음)'
     u_items  = '\n'.join([f"- {a['title']}" for a in top_u]) or '(없음)'
     recent   = '\n'.join([f"- [{a['published']}] {a['title']}" for a in recent_arts[:25]])
     tl_items = '\n'.join([f"- [{a['published']}] {a['title']}" for a in tl_arts[:120]]) or recent
-    jsn_txt  = '\n'.join([f"- [{p['date']}] {p['title']}" for p in jsn_posts]) or '(없음)'
 
     # 논지 요약
     r1 = client.messages.create(model='claude-haiku-4-5-20251001', max_tokens=600,
@@ -381,32 +385,7 @@ TIMELINE: YYYY-MM-DD | (사건 요약)
                 d, ev = body.split('|', 1)
                 timeline.append({'date': d.strip(), 'event': ev.strip()})
 
-    # 전삼노 주요 주장 타임라인
-    jsn_timeline = []
-    if jsn_posts:
-        r3 = client.messages.create(model='claude-haiku-4-5-20251001', max_tokens=1000,
-            messages=[{'role':'user','content':f"""전삼노(삼성전자 노조) 홈페이지 보도자료 목록입니다.
-
-{jsn_txt}
-
-이 목록에서 주요 주장/성명을 날짜순으로 정리하세요. 반드시 아래 형식으로만 출력:
-JSN: YYYY-MM-DD | (핵심 주장 한 줄)
-JSN: YYYY-MM-DD | (핵심 주장 한 줄)
-(최대 15개, 날짜 오름차순)"""}])
-        for line in r3.content[0].text.splitlines():
-            line = line.strip()
-            if line.startswith('JSN:'):
-                body = line[4:].strip()
-                if '|' in body:
-                    d, ev = body.split('|', 1)
-                    jsn_timeline.append({'date': d.strip(), 'event': ev.strip()})
-    else:
-        # 전삼노 접근 실패 시 뉴스 기반 대체
-        for t in timeline:
-            if any(k in t['event'] for k in ['노조','전삼노','파업권','파업 정당','협상 거부','부당']):
-                jsn_timeline.append(t)
-
-    return s_sum, u_sum, facts, timeline, jsn_timeline
+    return s_sum, u_sum, facts, timeline
 
 # ── 추이 저장 ────────────────────────────────────────────────────
 def save_trend(now_str, s_pct, u_pct):
@@ -560,8 +539,8 @@ header{{position:relative;z-index:10;display:flex;align-items:center;justify-con
 .win-badge{{text-align:center;margin-top:5px;font-size:12px;color:#888}}
 .win-badge .ws{{color:#42a5f5;font-weight:700}}.win-badge .wu{{color:#ef5350;font-weight:700}}
 .score-note{{text-align:center;font-size:10px;color:#383838;margin-top:5px}}
-/* facts + timeline (3-col) */
-.ft-sec{{position:relative;z-index:5;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:0 24px 18px}}
+/* facts + timeline (2-col) */
+.ft-sec{{position:relative;z-index:5;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 24px 18px}}
 .panel{{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:11px;padding:16px}}
 .panel-title{{font-size:10px;font-weight:700;letter-spacing:2px;color:#999;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:7px}}
 .dot-y{{width:6px;height:6px;border-radius:50%;background:#ffd54f;box-shadow:0 0 5px #ffd54f;flex-shrink:0}}
@@ -720,7 +699,7 @@ header{{position:relative;z-index:10;display:flex;align-items:center;justify-con
   <div class="score-note">뉴스 70% + 유튜브 30% 통합 점수</div>
 </div>
 
-<!-- 팩트 + 타임라인 + 전삼노 (3열) -->
+<!-- 팩트 + 타임라인 (2열) -->
 <div class="ft-sec">
   <div class="panel">
     <div class="panel-title"><span class="dot-y"></span>실시간 팩트 현황<span style="color:#444;font-size:9px;margin-left:auto">중립·사실 기반</span></div>
@@ -729,10 +708,6 @@ header{{position:relative;z-index:10;display:flex;align-items:center;justify-con
   <div class="panel">
     <div class="panel-title"><span class="dot-g"></span>주요 사건 타임라인<span style="color:#444;font-size:9px;margin-left:auto">2026.02~</span></div>
     <div id="timelineList" class="scroll-panel"></div>
-  </div>
-  <div class="panel">
-    <div class="panel-title"><span class="dot-r"></span>전삼노 주요 주장<span style="color:#444;font-size:9px;margin-left:auto">공식 성명·보도자료</span></div>
-    <div id="jsnList" class="scroll-panel"></div>
   </div>
 </div>
 
@@ -758,11 +733,11 @@ header{{position:relative;z-index:10;display:flex;align-items:center;justify-con
 <div class="sec-divider"><div class="sec-label">유튜브 언론전</div></div>
 <div class="yt-sec">
   <div class="yt-col samsung">
-    <div class="yt-col-hdr"><span class="dot-y" style="background:#42a5f5;box-shadow:0 0 5px #42a5f5"></span>삼성 측 우세 유튜브 TOP 3<span class="yt-cnt" id="cntYtS" style="margin-left:auto">-</span></div>
+    <div class="yt-col-hdr"><span class="dot-y" style="background:#42a5f5;box-shadow:0 0 5px #42a5f5"></span>삼성 측 우세 유튜브 TOP 5<span class="yt-cnt" id="cntYtS" style="margin-left:auto">-</span></div>
     <div id="ytS"></div>
   </div>
   <div class="yt-col union">
-    <div class="yt-col-hdr"><span class="dot-y" style="background:#ef5350;box-shadow:0 0 5px #ef5350"></span>노조 측 우세 유튜브 TOP 3<span class="yt-cnt" id="cntYtU" style="margin-left:auto">-</span></div>
+    <div class="yt-col-hdr"><span class="dot-y" style="background:#ef5350;box-shadow:0 0 5px #ef5350"></span>노조 측 우세 유튜브 TOP 5<span class="yt-cnt" id="cntYtU" style="margin-left:auto">-</span></div>
     <div id="ytU"></div>
   </div>
 </div>
@@ -862,12 +837,6 @@ function render(){{
   document.getElementById('timelineList').innerHTML=(d.timeline||[]).map(t=>
     `<div class="tl-item"><div class="tl-dot"></div><div class="tl-date">${{t.date}}</div><div class="tl-ev">${{t.event}}</div></div>`).join('');
 
-  // 전삼노 타임라인
-  document.getElementById('jsnList').innerHTML=(d.jsn_timeline||[]).length
-    ? (d.jsn_timeline||[]).map(t=>
-        `<div class="tl-item"><div class="tl-dot-r"></div><div class="tl-date">${{t.date}}</div><div class="tl-ev">${{t.event}}</div></div>`).join('')
-    : '<div style="color:#3a3a3a;padding:20px;text-align:center;font-size:11px">데이터 수집 중</div>';
-
   // 뉴스 기사
   function artHTML(arts){{
     if(!arts||!arts.length) return '<div style="color:#3a3a3a;padding:24px;text-align:center;font-size:12px">해당 기사 없음</div>';
@@ -962,9 +931,6 @@ def main():
     tl_arts = fetch_timeline_articles()
     print(f'  최근 {len(arts)}건 / 타임라인용 {len(tl_arts)}건')
 
-    print('전삼노 홈페이지 수집 중...')
-    jsn_posts = fetch_jeonsamno()
-
     print('유튜브 수집 중...')
     yt_videos = fetch_youtube_videos()
 
@@ -983,7 +949,7 @@ def main():
     backfill_trend()
 
     print('Claude 요약 생성 중...')
-    s_sum, u_sum, facts, timeline, jsn_timeline = ai_generate(arts, tl_arts, top_s, top_u, jsn_posts)
+    s_sum, u_sum, facts, timeline = ai_generate(arts, tl_arts, top_s, top_u)
 
     data = {
         'updated_at':      now_str,
@@ -1000,7 +966,6 @@ def main():
         'union_summary':   u_sum,
         'facts':           facts,
         'timeline':        timeline,
-        'jsn_timeline':    jsn_timeline,
         'yt_samsung':      top_s_yt,
         'yt_union':        top_u_yt,
         'yt_s_cnt':        yt_s_cnt,
