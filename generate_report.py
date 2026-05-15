@@ -120,6 +120,15 @@ def clean_source(src):
     src = re.sub(r'\s*-\s*(Google 뉴스|Google News).*', '', src or '').strip()
     return src or '기타'
 
+def extract_source(raw_title, feed_title):
+    """Google News 제목 끝 '- 언론사명' 패턴으로 언론사 추출; 직접 RSS는 feed_title 사용"""
+    m = re.search(r'\s+-\s+([^-\n]{2,25})$', raw_title.strip())
+    if m:
+        candidate = m.group(1).strip()
+        if not re.match(r'^\d', candidate):   # 날짜 형식 제외
+            return candidate
+    return clean_source(feed_title)
+
 # ── 기사 수집 ────────────────────────────────────────────────────
 def fetch_articles():
     cutoff = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=1)
@@ -127,6 +136,7 @@ def fetch_articles():
     for url in RSS_FEEDS:
         try:
             feed = feedparser.parse(url, request_headers={'User-Agent': 'Mozilla/5.0'})
+            feed_title = feed.feed.get('title', '')
             for e in feed.entries[:50]:
                 link = e.get('link', '')
                 if link in seen: continue
@@ -134,13 +144,21 @@ def fetch_articles():
                 try:    pub = datetime(*e.published_parsed[:6])
                 except: pub = datetime.now()
                 if pub < cutoff: continue
-                title   = strip_html(e.get('title', ''))
+                raw_title = strip_html(e.get('title', ''))
+                # 언론사명을 제목에서 분리: "제목 - 언론사명" → (제목, 언론사)
+                m = re.search(r'^(.+?)\s+-\s+([^-]{2,25})$', raw_title)
+                if m:
+                    title  = m.group(1).strip()
+                    source = m.group(2).strip()
+                else:
+                    title  = raw_title
+                    source = clean_source(feed_title)
                 summary = strip_html(e.get('summary', ''))
                 full    = title + ' ' + summary
                 if not is_relevant(full): continue
                 arts.append({'title': title, 'link': link, 'summary': summary[:280],
                              'published': pub.strftime('%Y-%m-%d %H:%M'),
-                             'source': clean_source(feed.feed.get('title', '')),
+                             'source': source,
                              '_pub_dt': pub, '_text': full})
         except Exception as ex:
             print(f'[RSS] {url[:55]}: {ex}')
@@ -238,15 +256,20 @@ def fetch_youtube_videos():
     print(f'  유튜브 {len(results)}건 수집')
     return results
 
+# 편향 성향이 알려진 유튜브 채널 (채널명 substring 매칭)
+YT_UNION_CH   = ['한겨레', '경향신문', '오마이뉴스', '민주노총', '뉴스타파', '참세상']
+YT_SAMSUNG_CH = ['조선일보', '중앙일보', '동아일보', '매일경제', '한국경제', '연합뉴스tv', 'kbs']
+
 def classify_youtube(videos):
     s_list, u_list = [], []
     for v in videos:
         s, u = score(v['_text'])
+        # 제목 키워드로 점수가 0이면 채널 편향만 약하게 반영
         if s == 0 and u == 0:
-            tl = v['title'].lower()
-            if   any(k in tl for k in FALLBACK_S): s = 1
-            elif any(k in tl for k in FALLBACK_U): u = 1
-            else: continue
+            ch = v.get('channel', '').lower()
+            if   any(k in ch for k in YT_UNION_CH):   u = 1
+            elif any(k in ch for k in YT_SAMSUNG_CH): s = 1
+            else: continue   # 명확한 시그널 없으면 제외
         item = {k: val for k, val in v.items() if not k.startswith('_')}
         vc   = v.get('view_count', 0) or 0
         if   s > u: s_list.append((item, s, vc))
