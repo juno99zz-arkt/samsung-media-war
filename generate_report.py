@@ -1,14 +1,9 @@
 # -*- coding: utf-8 -*-
 """
 Samsung vs Union Media War — Static HTML Generator
-GitHub Actions에서 실행: 뉴스 수집 → 분류 → 요약 → docs/index.html 생성
+GitHub Actions에서 실행: 뉴스/유튜브 수집 → 분류 → 요약 → docs/index.html 생성
 """
-import feedparser
-import re
-import urllib.parse
-import json
-import os
-import anthropic
+import feedparser, re, urllib.parse, json, os, anthropic
 from datetime import datetime, timedelta
 
 # ── 설정 ─────────────────────────────────────────────────────────
@@ -18,7 +13,7 @@ TREND_FILE = os.path.join(DOCS_DIR, 'trend.json')
 OUT_FILE   = os.path.join(DOCS_DIR, 'index.html')
 os.makedirs(DOCS_DIR, exist_ok=True)
 
-# ── 주제 키워드 ───────────────────────────────────────────────────
+# ── 주제 키워드 ──────────────────────────────────────────────────
 TOPIC_MUST  = ['삼성', 'samsung']
 TOPIC_UNION = ['노조','파업','조합원','단협','단체교섭','노동자','근로자',
                '임금','쟁의','전삼노','삼성전자노조',
@@ -59,7 +54,10 @@ UNION_SIGNALS = [
     'demands bigger bonus','demands share','workers demand','employees demand',
 ]
 
-# ── RSS 피드 ──────────────────────────────────────────────────────
+FALLBACK_S = ['강행','불법','방해','차질','내홍','이탈','손배','위법','illegal','refuse','disruption']
+FALLBACK_U = ['탄압','착취','갑질','차별','부당','침해','파업권','헌법','busting','exploitation']
+
+# ── RSS 피드 ─────────────────────────────────────────────────────
 def _enc(q): return urllib.parse.quote(q)
 
 RSS_FEEDS = [
@@ -96,6 +94,14 @@ TIMELINE_FEEDS = [
     f'https://news.google.com/rss/search?q={_enc("Samsung union walkout labor 2026")}&hl=en&gl=US&ceid=US:en',
 ]
 
+YT_QUERIES = [
+    '삼성전자 노조 파업 2026',
+    '전삼노 파업 삼성전자',
+    '삼성 노조 불법파업',
+    '삼성 노동자 파업권',
+    'Samsung Electronics union strike 2026',
+]
+
 # ── 유틸 ─────────────────────────────────────────────────────────
 def strip_html(text):
     text = re.sub(r'<[^>]+>', ' ', text or '')
@@ -110,7 +116,11 @@ def score(text):
     return (sum(1 for k in SAMSUNG_SIGNALS if k in t),
             sum(1 for k in UNION_SIGNALS   if k in t))
 
-# ── 기사 수집 ─────────────────────────────────────────────────────
+def clean_source(src):
+    src = re.sub(r'\s*-\s*(Google 뉴스|Google News).*', '', src or '').strip()
+    return src or '기타'
+
+# ── 기사 수집 ────────────────────────────────────────────────────
 def fetch_articles():
     cutoff = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=1)
     seen, arts = set(), []
@@ -130,7 +140,7 @@ def fetch_articles():
                 if not is_relevant(full): continue
                 arts.append({'title': title, 'link': link, 'summary': summary[:280],
                              'published': pub.strftime('%Y-%m-%d %H:%M'),
-                             'source': feed.feed.get('title', ''),
+                             'source': clean_source(feed.feed.get('title', '')),
                              '_pub_dt': pub, '_text': full})
         except Exception as ex:
             print(f'[RSS] {url[:55]}: {ex}')
@@ -158,11 +168,105 @@ def fetch_timeline_articles():
     arts.sort(key=lambda a: a['_pub_dt'])
     return arts
 
+# ── 전삼노 홈페이지 ──────────────────────────────────────────────
+def fetch_jeonsamno():
+    try:
+        import requests
+        from bs4 import BeautifulSoup
+        url = 'https://samsunglabor.co.kr/bbs/board.php?bo_table=bodo'
+        res = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=15)
+        soup = BeautifulSoup(res.text, 'html.parser')
+        posts = []
+        # gnuboard5 표준 구조
+        for row in soup.select('#fboardlist tbody tr'):
+            title_el = row.select_one('.td_subject a, td.td_subject a')
+            date_el  = row.select_one('.td_datetime, td.td_datetime')
+            if not title_el: continue
+            title = title_el.get_text(strip=True)
+            if not title: continue
+            date  = date_el.get_text(strip=True)[:10] if date_el else ''
+            href  = title_el.get('href', '')
+            if href and not href.startswith('http'):
+                href = 'https://samsunglabor.co.kr' + href
+            posts.append({'title': title, 'date': date, 'link': href})
+        print(f'  전삼노 {len(posts)}건 수집')
+        return posts[:25]
+    except Exception as e:
+        print(f'[전삼노] {e}')
+        return []
+
+# ── 유튜브 수집 ──────────────────────────────────────────────────
+def fetch_youtube_videos():
+    try:
+        from yt_dlp import YoutubeDL
+    except ImportError:
+        print('[YouTube] yt-dlp 없음, 스킵')
+        return []
+
+    ydl_opts = {
+        'quiet': True, 'no_warnings': True,
+        'extract_flat': True, 'skip_download': True,
+    }
+    seen, results = set(), []
+    for q in YT_QUERIES:
+        try:
+            with YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(f'ytsearch15:{q}', download=False)
+                for e in (info.get('entries') or []):
+                    if not e: continue
+                    vid_id = e.get('id', '')
+                    if not vid_id or vid_id in seen: continue
+                    seen.add(vid_id)
+                    title = e.get('title', '')
+                    desc  = e.get('description', '') or ''
+                    full  = title + ' ' + desc
+                    if not any(k in full.lower() for k in ['삼성', 'samsung']): continue
+                    upload_date = e.get('upload_date', '') or ''
+                    if len(upload_date) == 8:
+                        upload_date = f'{upload_date[:4]}-{upload_date[4:6]}-{upload_date[6:]}'
+                    results.append({
+                        'title':       title,
+                        'url':         f'https://www.youtube.com/watch?v={vid_id}',
+                        'thumbnail':   f'https://i.ytimg.com/vi/{vid_id}/mqdefault.jpg',
+                        'view_count':  e.get('view_count') or 0,
+                        'channel':     e.get('channel') or e.get('uploader', ''),
+                        'upload_date': upload_date,
+                        '_text': full,
+                    })
+        except Exception as ex:
+            print(f'[YT] {q[:30]}: {ex}')
+    print(f'  유튜브 {len(results)}건 수집')
+    return results
+
+def classify_youtube(videos):
+    s_list, u_list = [], []
+    for v in videos:
+        s, u = score(v['_text'])
+        if s == 0 and u == 0:
+            tl = v['title'].lower()
+            if   any(k in tl for k in FALLBACK_S): s = 1
+            elif any(k in tl for k in FALLBACK_U): u = 1
+            else: continue
+        item = {k: val for k, val in v.items() if not k.startswith('_')}
+        vc   = v.get('view_count', 0) or 0
+        if   s > u: s_list.append((item, s, vc))
+        elif u > s: u_list.append((item, u, vc))
+        elif s > 0: s_list.append((item, s, vc)); u_list.append((item, u, vc))
+
+    s_list.sort(key=lambda x: -x[2])
+    u_list.sort(key=lambda x: -x[2])
+
+    def power(lst): return sum(sc for _, sc, _ in lst) + len(lst) * 3
+    sp, up = power(s_list), power(u_list)
+    total  = sp + up
+    yt_s_pct = round(sp / total * 100) if total else 50
+    return ([a for a, _, _ in s_list[:3]], [a for a, _, _ in u_list[:3]],
+            len(s_list), len(u_list), yt_s_pct, 100 - yt_s_pct)
+
 # ── 분류 ─────────────────────────────────────────────────────────
 def classify(articles):
     s_list, u_list = [], []
-    FALLBACK_S = ['강행','불법','방해','차질','내홍','이탈','손배','위법','illegal','refuse','disruption']
-    FALLBACK_U = ['탄압','착취','갑질','차별','부당','침해','파업권','헌법','busting','exploitation']
+    s_sources, u_sources = {}, {}
     for art in articles:
         s, u = score(art['_text'])
         if s == 0 and u == 0:
@@ -170,10 +274,18 @@ def classify(articles):
             if   any(k in tl for k in FALLBACK_S): s = 1
             elif any(k in tl for k in FALLBACK_U): u = 1
             else: continue
-        a = {k: v for k, v in art.items() if not k.startswith('_')}
-        if   s > u: s_list.append((a, s))
-        elif u > s: u_list.append((a, u))
-        elif s > 0: s_list.append((a, s)); u_list.append((a, u))
+        a   = {k: v for k, v in art.items() if not k.startswith('_')}
+        src = art.get('source', '기타') or '기타'
+        if   s > u:
+            s_list.append((a, s))
+            s_sources[src] = s_sources.get(src, 0) + 1
+        elif u > s:
+            u_list.append((a, u))
+            u_sources[src] = u_sources.get(src, 0) + 1
+        elif s > 0:
+            s_list.append((a, s)); u_list.append((a, u))
+            s_sources[src] = s_sources.get(src, 0) + 1
+            u_sources[src] = u_sources.get(src, 0) + 1
 
     s_list.sort(key=lambda x: -x[1])
     u_list.sort(key=lambda x: -x[1])
@@ -184,16 +296,20 @@ def classify(articles):
     sp, up = power(s_list), power(u_list)
     total  = sp + up
     s_pct  = round(sp / total * 100) if total else 50
-    return top_s, top_u, s_pct, 100 - s_pct, len(s_list), len(u_list)
+
+    s_media = sorted(s_sources.items(), key=lambda x: -x[1])[:10]
+    u_media = sorted(u_sources.items(), key=lambda x: -x[1])[:10]
+    return top_s, top_u, s_pct, 100 - s_pct, len(s_list), len(u_list), s_media, u_media
 
 # ── Claude API ────────────────────────────────────────────────────
-def ai_generate(recent_arts, tl_arts, top_s, top_u):
+def ai_generate(recent_arts, tl_arts, top_s, top_u, jsn_posts):
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
-    s_items = '\n'.join([f"- {a['title']}" for a in top_s]) or '(없음)'
-    u_items = '\n'.join([f"- {a['title']}" for a in top_u]) or '(없음)'
-    recent  = '\n'.join([f"- [{a['published']}] {a['title']}" for a in recent_arts[:25]])
-    tl_items= '\n'.join([f"- [{a['published']}] {a['title']}" for a in tl_arts[:120]]) or recent
+    s_items  = '\n'.join([f"- {a['title']}" for a in top_s]) or '(없음)'
+    u_items  = '\n'.join([f"- {a['title']}" for a in top_u]) or '(없음)'
+    recent   = '\n'.join([f"- [{a['published']}] {a['title']}" for a in recent_arts[:25]])
+    tl_items = '\n'.join([f"- [{a['published']}] {a['title']}" for a in tl_arts[:120]]) or recent
+    jsn_txt  = '\n'.join([f"- [{p['date']}] {p['title']}" for p in jsn_posts]) or '(없음)'
 
     # 논지 요약
     r1 = client.messages.create(model='claude-haiku-4-5-20251001', max_tokens=600,
@@ -212,7 +328,7 @@ def ai_generate(recent_arts, tl_arts, top_s, top_u):
     m = re.search(r'노조측논지\s*[:\s]\s*(.+?)$', raw1, re.DOTALL)
     if m: u_sum = m.group(1).strip().replace('\n', ' ')
 
-    # 팩트 + 타임라인
+    # 팩트 + 주요사건 타임라인
     r2 = client.messages.create(model='claude-haiku-4-5-20251001', max_tokens=2000,
         messages=[{'role':'user','content':f"""삼성전자 노사 갈등 기사들입니다.
 
@@ -222,7 +338,7 @@ def ai_generate(recent_arts, tl_arts, top_s, top_u):
 [전체 기간 기사 (2026년 2월~)]
 {tl_items}
 
-아래 형식으로만 출력하세요. FACT 5개, TIMELINE은 2026년 2월부터 현재까지 주요 사건을 날짜순으로 빠짐없이 모두 나열(최대 25개):
+아래 형식으로만 출력하세요. FACT 5개, TIMELINE은 2026년 2월부터 현재까지 주요 사건 날짜순으로 빠짐없이(최대 25개):
 FACT: (중립 사실)
 FACT: (중립 사실)
 FACT: (중립 사실)
@@ -242,9 +358,34 @@ TIMELINE: YYYY-MM-DD | (사건 요약)
                 d, ev = body.split('|', 1)
                 timeline.append({'date': d.strip(), 'event': ev.strip()})
 
-    return s_sum, u_sum, facts, timeline
+    # 전삼노 주요 주장 타임라인
+    jsn_timeline = []
+    if jsn_posts:
+        r3 = client.messages.create(model='claude-haiku-4-5-20251001', max_tokens=1000,
+            messages=[{'role':'user','content':f"""전삼노(삼성전자 노조) 홈페이지 보도자료 목록입니다.
 
-# ── 추이 저장 ─────────────────────────────────────────────────────
+{jsn_txt}
+
+이 목록에서 주요 주장/성명을 날짜순으로 정리하세요. 반드시 아래 형식으로만 출력:
+JSN: YYYY-MM-DD | (핵심 주장 한 줄)
+JSN: YYYY-MM-DD | (핵심 주장 한 줄)
+(최대 15개, 날짜 오름차순)"""}])
+        for line in r3.content[0].text.splitlines():
+            line = line.strip()
+            if line.startswith('JSN:'):
+                body = line[4:].strip()
+                if '|' in body:
+                    d, ev = body.split('|', 1)
+                    jsn_timeline.append({'date': d.strip(), 'event': ev.strip()})
+    else:
+        # 전삼노 접근 실패 시 뉴스 기반 대체
+        for t in timeline:
+            if any(k in t['event'] for k in ['노조','전삼노','파업권','파업 정당','협상 거부','부당']):
+                jsn_timeline.append(t)
+
+    return s_sum, u_sum, facts, timeline, jsn_timeline
+
+# ── 추이 저장 ────────────────────────────────────────────────────
 def save_trend(now_str, s_pct, u_pct):
     history = []
     if os.path.exists(TREND_FILE):
@@ -252,35 +393,32 @@ def save_trend(now_str, s_pct, u_pct):
             with open(TREND_FILE, encoding='utf-8') as f:
                 history = json.load(f)
         except: pass
-    key = now_str[:13]  # YYYY-MM-DD HH
+    key     = now_str[:13]
     history = [h for h in history if h.get('time','')[:13] != key]
     history.append({'time': now_str, 'samsung_pct': s_pct, 'union_pct': u_pct})
     history = history[-200:]
     with open(TREND_FILE, 'w', encoding='utf-8') as f:
         json.dump(history, f, ensure_ascii=False)
 
-# ── 역사 데이터 백필 (2026-02-13~) ───────────────────────────────
+# ── 역사 데이터 백필 ────────────────────────────────────────────
 TREND_START = datetime(2026, 2, 13)
 
 def backfill_trend():
-    """첫 실행 시 2026-02-13부터 현재까지 주별 추이를 백필"""
     if os.path.exists(TREND_FILE):
         try:
             with open(TREND_FILE, encoding='utf-8') as f:
                 history = json.load(f)
-            if any(h.get('time', '')[:10] <= '2026-02-20' for h in history):
-                return  # 이미 백필됨
+            if any(h.get('time','')[:10] <= '2026-02-20' for h in history):
+                return
         except: pass
 
     print('  역사 추이 백필 중 (2026-02-13~)...')
-    FALLBACK_S = ['강행','불법','방해','차질','내홍','이탈','손배','위법']
-    FALLBACK_U = ['탄압','착취','갑질','차별','부당','침해','파업권','헌법']
     history_data = []
-    week_start = TREND_START
-    now = datetime.now()
+    week_start   = TREND_START
+    now          = datetime.now()
 
     while week_start < now - timedelta(days=3):
-        week_end = week_start + timedelta(days=7)
+        week_end   = week_start + timedelta(days=7)
         after_str  = week_start.strftime('%Y-%m-%d')
         before_str = week_end.strftime('%Y-%m-%d')
         feeds = [
@@ -293,16 +431,16 @@ def backfill_trend():
             try:
                 feed = feedparser.parse(url, request_headers={'User-Agent': 'Mozilla/5.0'})
                 for e in feed.entries[:40]:
-                    link = e.get('link', '')
+                    link = e.get('link','')
                     if link in seen: continue
                     seen.add(link)
                     try:    pub = datetime(*e.published_parsed[:6])
                     except: continue
                     if not (week_start <= pub < week_end): continue
-                    title = strip_html(e.get('title', ''))
-                    full  = title + ' ' + strip_html(e.get('summary', ''))
+                    title = strip_html(e.get('title',''))
+                    full  = title + ' ' + strip_html(e.get('summary',''))
                     if not is_relevant(full): continue
-                    s, u = score(full)
+                    s, u  = score(full)
                     if s == 0 and u == 0:
                         tl = title.lower()
                         if   any(k in tl for k in FALLBACK_S): s = 1
@@ -318,11 +456,9 @@ def backfill_trend():
         total   = total_s + total_u
         if total > 0:
             s_pct = round(total_s / total * 100)
-            history_data.append({
-                'time': week_start.strftime('%Y-%m-%d 12:00:00'),
-                'samsung_pct': s_pct, 'union_pct': 100 - s_pct
-            })
-            print(f'    {after_str}: 삼성{s_pct}% / 노조{100-s_pct}% ({len(s_scores)+len(u_scores)}건)')
+            history_data.append({'time': week_start.strftime('%Y-%m-%d 12:00:00'),
+                                  'samsung_pct': s_pct, 'union_pct': 100 - s_pct})
+            print(f'    {after_str}: 삼성{s_pct}% ({len(s_scores)+len(u_scores)}건)')
         week_start = week_end
 
     if history_data:
@@ -334,27 +470,27 @@ def backfill_trend():
             except: pass
         merged = history_data + existing
         merged.sort(key=lambda x: x['time'])
-        seen_keys, deduped = set(), []
+        seen_k, deduped = set(), []
         for h in merged:
             k = h['time'][:13]
-            if k not in seen_keys:
-                seen_keys.add(k); deduped.append(h)
+            if k not in seen_k:
+                seen_k.add(k); deduped.append(h)
         with open(TREND_FILE, 'w', encoding='utf-8') as f:
             json.dump(deduped, f, ensure_ascii=False)
-        print(f'  백필 완료: {len(history_data)}개 주별 포인트 추가')
+        print(f'  백필 완료: {len(history_data)}개 포인트')
 
 # ── HTML 생성 ─────────────────────────────────────────────────────
 def build_html(data, trend_history):
-    data_js    = json.dumps(data,          ensure_ascii=False)
-    trend_js   = json.dumps(trend_history, ensure_ascii=False)
-    updated_at = data['updated_at']
+    data_js  = json.dumps(data,          ensure_ascii=False)
+    trend_js = json.dumps(trend_history, ensure_ascii=False)
+    upd      = data['updated_at']
 
     return f"""<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>삼성 vs 노조 — 언론전 분석</title>
+<title>삼성 vs 노조 언론전 실시간 분석</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 *{{margin:0;padding:0;box-sizing:border-box}}
@@ -372,19 +508,23 @@ body{{min-height:100vh;background:#07070f;color:#e8e8e8;font-family:'Noto Sans K
 .login-err{{margin-top:12px;color:#ef5350;font-size:12px;min-height:18px}}
 /* main */
 .main{{display:none}}
-header{{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(0,0,0,.5);border-bottom:1px solid rgba(255,255,255,.07);backdrop-filter:blur(16px)}}
+header{{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:12px 24px;background:rgba(0,0,0,.5);border-bottom:1px solid rgba(255,255,255,.07);backdrop-filter:blur(16px)}}
 .site-badge{{font-size:10px;letter-spacing:2px;color:#555;text-transform:uppercase}}
-.site-title{{font-size:15px;font-weight:700;color:#fff}}
 .hdr-r{{display:flex;align-items:center;gap:10px}}
-.upd-time{{font-size:11px;color:#444;border-left:1px solid rgba(255,255,255,.07);padding-left:10px}}
+.upd-time{{font-size:11px;color:#444}}
 .logout-btn{{padding:6px 12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#666;font-size:11px;cursor:pointer}}
 .logout-btn:hover{{color:#fff}}
-/* VS */
-.vs-hero{{position:relative;z-index:5;display:flex;align-items:center;justify-content:center;padding:24px 20px 16px}}
-.sl{{flex:1;text-align:center}}.sl .name{{font-size:24px;font-weight:900;display:block;margin-bottom:3px}}.sl .sub{{font-size:10px;color:#555;letter-spacing:1.5px}}
+/* 메인 타이틀 */
+.main-title-wrap{{position:relative;z-index:5;text-align:center;padding:40px 20px 16px}}
+.main-title{{font-size:42px;font-weight:900;color:#fff;line-height:1.2;letter-spacing:-1px}}
+.main-title .vs-word{{background:linear-gradient(90deg,#42a5f5,#ef5350);-webkit-background-clip:text;-webkit-text-fill-color:transparent}}
+.main-title-sub{{font-size:13px;color:#555;letter-spacing:2px;margin-top:10px}}
+/* VS hero */
+.vs-hero{{position:relative;z-index:5;display:flex;align-items:center;justify-content:center;padding:8px 20px 16px}}
+.sl{{flex:1;text-align:center}}.sl .name{{font-size:22px;font-weight:900;display:block;margin-bottom:3px}}.sl .sub{{font-size:10px;color:#555;letter-spacing:1.5px}}
 .sl.samsung .name{{color:#42a5f5}}.sl.union .name{{color:#ef5350}}
 .vsc{{width:60px;text-align:center;flex-shrink:0}}
-.vs-text{{font-size:30px;font-weight:900;background:linear-gradient(180deg,#fff,#555);-webkit-background-clip:text;-webkit-text-fill-color:transparent}}
+.vs-text{{font-size:28px;font-weight:900;background:linear-gradient(180deg,#fff,#555);-webkit-background-clip:text;-webkit-text-fill-color:transparent}}
 .vs-sub{{font-size:9px;color:#444;letter-spacing:2px;margin-top:2px}}
 /* score bar */
 .score-sec{{position:relative;z-index:5;padding:0 24px 18px}}
@@ -396,20 +536,14 @@ header{{position:relative;z-index:10;display:flex;align-items:center;justify-con
 .sl-item{{font-size:10px;color:#505050}}.sl-item.as{{color:#42a5f5;font-weight:600}}.sl-item.au{{color:#ef5350;font-weight:600}}
 .win-badge{{text-align:center;margin-top:5px;font-size:12px;color:#888}}
 .win-badge .ws{{color:#42a5f5;font-weight:700}}.win-badge .wu{{color:#ef5350;font-weight:700}}
-/* summary */
-.sum-sec{{position:relative;z-index:5;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 24px 14px}}
-.sum-card{{border-radius:11px;padding:14px 16px}}
-.sum-card.samsung{{background:linear-gradient(135deg,rgba(13,71,161,.18),rgba(13,71,161,.05));border:1px solid rgba(21,101,192,.3)}}
-.sum-card.union{{background:linear-gradient(135deg,rgba(183,28,28,.18),rgba(183,28,28,.05));border:1px solid rgba(198,40,40,.3)}}
-.sum-label{{font-size:9px;font-weight:700;letter-spacing:2px;margin-bottom:7px;text-transform:uppercase}}
-.sum-card.samsung .sum-label{{color:#42a5f5}}.sum-card.union .sum-label{{color:#ef5350}}
-.sum-text{{font-size:12px;line-height:1.75;color:#bbb}}
-/* facts + timeline */
-.ft-sec{{position:relative;z-index:5;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 24px 18px}}
+.score-note{{text-align:center;font-size:10px;color:#383838;margin-top:5px}}
+/* facts + timeline (3-col) */
+.ft-sec{{position:relative;z-index:5;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:0 24px 18px}}
 .panel{{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:11px;padding:16px}}
 .panel-title{{font-size:10px;font-weight:700;letter-spacing:2px;color:#999;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:7px}}
 .dot-y{{width:6px;height:6px;border-radius:50%;background:#ffd54f;box-shadow:0 0 5px #ffd54f;flex-shrink:0}}
 .dot-g{{width:6px;height:6px;border-radius:50%;background:#b0bec5;box-shadow:0 0 5px #b0bec5;flex-shrink:0}}
+.dot-r{{width:6px;height:6px;border-radius:50%;background:#ef5350;box-shadow:0 0 5px #ef5350;flex-shrink:0}}
 .fact-item{{display:flex;gap:9px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)}}
 .fact-item:last-child{{border-bottom:none}}
 .fact-num{{font-size:10px;color:#ffd54f;font-weight:700;flex-shrink:0;width:16px}}
@@ -417,8 +551,18 @@ header{{position:relative;z-index:10;display:flex;align-items:center;justify-con
 .tl-item{{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)}}
 .tl-item:last-child{{border-bottom:none}}
 .tl-dot{{width:7px;height:7px;border-radius:50%;background:#546e7a;flex-shrink:0;margin-top:4px}}
+.tl-dot-r{{width:7px;height:7px;border-radius:50%;background:#c62828;flex-shrink:0;margin-top:4px}}
 .tl-date{{font-size:10px;color:#555;font-weight:600;white-space:nowrap;width:72px;flex-shrink:0;margin-top:2px}}
 .tl-ev{{font-size:11.5px;color:#ccc;line-height:1.6}}
+.scroll-panel{{max-height:480px;overflow-y:auto}}
+/* summary (논지) */
+.sum-sec{{position:relative;z-index:5;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 24px 14px}}
+.sum-card{{border-radius:11px;padding:14px 16px}}
+.sum-card.samsung{{background:linear-gradient(135deg,rgba(13,71,161,.18),rgba(13,71,161,.05));border:1px solid rgba(21,101,192,.3)}}
+.sum-card.union{{background:linear-gradient(135deg,rgba(183,28,28,.18),rgba(183,28,28,.05));border:1px solid rgba(198,40,40,.3)}}
+.sum-label{{font-size:9px;font-weight:700;letter-spacing:2px;margin-bottom:7px;text-transform:uppercase}}
+.sum-card.samsung .sum-label{{color:#42a5f5}}.sum-card.union .sum-label{{color:#ef5350}}
+.sum-text{{font-size:12px;line-height:1.75;color:#bbb}}
 /* article grid */
 .grid{{position:relative;z-index:5;display:grid;grid-template-columns:1fr 1fr;padding:0 16px 24px}}
 .col{{padding:0 12px}}
@@ -441,6 +585,40 @@ header{{position:relative;z-index:10;display:flex;align-items:center;justify-con
 .art-sum{{font-size:11px;color:#606060;line-height:1.6;margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}}
 .art-meta{{display:flex;font-size:10px;color:#484848}}
 .art-meta .date{{margin-left:auto}}
+/* YouTube */
+.sec-divider{{position:relative;z-index:5;padding:4px 24px 14px}}
+.sec-divider-line{{border:none;border-top:1px solid rgba(255,255,255,.06);margin-bottom:14px}}
+.sec-label{{font-size:10px;font-weight:700;letter-spacing:3px;color:#444;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px}}
+.sec-label::after{{content:'';flex:1;height:1px;background:rgba(255,255,255,.06)}}
+.yt-sec{{position:relative;z-index:5;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 24px 18px}}
+.yt-col{{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:11px;padding:16px}}
+.yt-col-hdr{{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:7px}}
+.yt-col.samsung .yt-col-hdr{{color:#42a5f5}}.yt-col.union .yt-col-hdr{{color:#ef5350}}
+.yt-cnt{{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:700}}
+.yt-col.samsung .yt-cnt{{background:rgba(21,101,192,.25);color:#64b5f6}}.yt-col.union .yt-cnt{{background:rgba(198,40,40,.25);color:#ef9a9a}}
+.yt-card{{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)}}
+.yt-card:last-child{{border-bottom:none}}
+.yt-thumb{{width:96px;height:54px;border-radius:6px;object-fit:cover;flex-shrink:0;background:#111}}
+.yt-info{{flex:1;min-width:0}}
+.yt-title{{font-size:12px;font-weight:600;color:#e0e0e0;line-height:1.5;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}}
+.yt-title a{{color:inherit;text-decoration:none}}.yt-title a:hover{{text-decoration:underline}}
+.yt-meta{{font-size:10px;color:#555;display:flex;flex-wrap:wrap;gap:6px;align-items:center}}
+.yt-views{{color:#ffd54f;font-weight:600}}
+/* 언론사 랭킹 */
+.media-sec{{position:relative;z-index:5;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 24px 18px}}
+.media-col{{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:11px;padding:16px}}
+.media-hdr{{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:7px}}
+.media-col.samsung .media-hdr{{color:#42a5f5}}.media-col.union .media-hdr{{color:#ef5350}}
+.media-row{{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)}}
+.media-row:last-child{{border-bottom:none}}
+.media-rank{{font-size:11px;font-weight:700;width:22px;flex-shrink:0;color:#505050}}
+.media-rank.top3{{color:#ffd54f}}
+.media-name{{font-size:12px;color:#ccc;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
+.media-bar-wrap{{width:70px;background:rgba(255,255,255,.05);border-radius:3px;height:5px;flex-shrink:0}}
+.media-col.samsung .media-bar{{background:#1976d2;height:5px;border-radius:3px}}
+.media-col.union .media-bar{{background:#e53935;height:5px;border-radius:3px}}
+.media-cnt{{font-size:11px;font-weight:600;width:28px;text-align:right;flex-shrink:0}}
+.media-col.samsung .media-cnt{{color:#64b5f6}}.media-col.union .media-cnt{{color:#ef9a9a}}
 /* trend */
 .trend-sec{{position:relative;z-index:5;padding:0 24px 36px}}
 .trend-panel{{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:20px 24px}}
@@ -453,12 +631,14 @@ header{{position:relative;z-index:10;display:flex;align-items:center;justify-con
 .sched{{position:relative;z-index:5;display:flex;align-items:center;justify-content:center;gap:5px;padding:10px;font-size:10px;color:#383838;border-top:1px solid rgba(255,255,255,.04)}}
 .sched span{{color:#505050;font-weight:600}}
 /* responsive */
+@media(max-width:900px){{
+  .ft-sec{{grid-template-columns:1fr 1fr}}
+}}
 @media(max-width:768px){{
-  .sum-sec,.ft-sec,.grid{{grid-template-columns:1fr}}
+  .ft-sec,.sum-sec,.yt-sec,.media-sec,.grid{{grid-template-columns:1fr}}
   header{{flex-direction:column;align-items:flex-start;gap:8px}}
   .hdr-r{{flex-wrap:wrap}}
-  .vs-hero{{padding:16px 12px 12px}}
-  .sl .name{{font-size:20px}}
+  .main-title{{font-size:26px}}
   .bar-pct{{font-size:13px}}
 }}
 </style>
@@ -482,19 +662,27 @@ header{{position:relative;z-index:10;display:flex;align-items:center;justify-con
 <!-- 메인 -->
 <div class="main" id="mainWrap">
 <header>
-  <div><div class="site-badge">Samsung Media Intelligence</div><div class="site-title">삼성 vs 노조 &mdash; 언론전 실시간 분석</div></div>
+  <div class="site-badge">Samsung Media Intelligence</div>
   <div class="hdr-r">
-    <div class="upd-time" id="updTime">최종 업데이트: {updated_at}</div>
+    <div class="upd-time">최종 업데이트: {upd}</div>
     <span class="logout-btn" onclick="doLogout()">로그아웃</span>
   </div>
 </header>
 
+<!-- 메인 타이틀 -->
+<div class="main-title-wrap">
+  <div class="main-title">삼성 <span class="vs-word">vs</span> 노조 언론전,<br>누가 이기고 있을까?</div>
+  <div class="main-title-sub">실시간 분석 · 뉴스 + 유튜브 통합</div>
+</div>
+
+<!-- VS hero -->
 <div class="vs-hero">
   <div class="sl samsung"><span class="name">삼성</span><span class="sub">SAMSUNG CORP.</span></div>
   <div class="vsc"><div class="vs-text">VS</div><div class="vs-sub">언론전</div></div>
   <div class="sl union"><span class="name">노조</span><span class="sub">LABOR UNION</span></div>
 </div>
 
+<!-- 점수바 (뉴스+유튜브 통합) -->
 <div class="score-sec">
   <div class="bar-wrap">
     <div class="bar-s" id="barS" style="width:50%"><span class="bar-pct" id="pctS">-</span></div>
@@ -502,22 +690,36 @@ header{{position:relative;z-index:10;display:flex;align-items:center;justify-con
   </div>
   <div class="score-labels">
     <div class="sl-item" id="lblS">삼성 우세</div>
-    <div class="sl-item" id="lblC">빈도 + 강도 기준</div>
+    <div class="sl-item" id="lblC">빈도+강도 기준</div>
     <div class="sl-item" id="lblU">노조 우세</div>
   </div>
   <div class="win-badge" id="winB"></div>
+  <div class="score-note">뉴스 70% + 유튜브 30% 통합 점수</div>
 </div>
 
+<!-- 팩트 + 타임라인 + 전삼노 (3열) -->
+<div class="ft-sec">
+  <div class="panel">
+    <div class="panel-title"><span class="dot-y"></span>실시간 팩트 현황<span style="color:#444;font-size:9px;margin-left:auto">중립·사실 기반</span></div>
+    <div id="factsList"></div>
+  </div>
+  <div class="panel">
+    <div class="panel-title"><span class="dot-g"></span>주요 사건 타임라인<span style="color:#444;font-size:9px;margin-left:auto">2026.02~</span></div>
+    <div id="timelineList" class="scroll-panel"></div>
+  </div>
+  <div class="panel">
+    <div class="panel-title"><span class="dot-r"></span>전삼노 주요 주장<span style="color:#444;font-size:9px;margin-left:auto">공식 성명·보도자료</span></div>
+    <div id="jsnList" class="scroll-panel"></div>
+  </div>
+</div>
+
+<!-- 논지 요약 (기사 바로 위) -->
 <div class="sum-sec">
   <div class="sum-card samsung"><div class="sum-label">삼성 측 주요 논지</div><div class="sum-text" id="sumS"></div></div>
   <div class="sum-card union">  <div class="sum-label">노조 측 주요 논지</div><div class="sum-text" id="sumU"></div></div>
 </div>
 
-<div class="ft-sec">
-  <div class="panel"><div class="panel-title"><span class="dot-y"></span>실시간 팩트 현황<span style="color:#444;font-size:9px;margin-left:auto">중립·사실 기반</span></div><div id="factsList"></div></div>
-  <div class="panel"><div class="panel-title"><span class="dot-g"></span>주요 사건 타임라인<span style="color:#444;font-size:9px;margin-left:auto">2026년 2월~</span></div><div id="timelineList" style="max-height:480px;overflow-y:auto"></div></div>
-</div>
-
+<!-- 뉴스 기사 -->
 <div class="grid">
   <div class="col samsung">
     <div class="col-hdr"><div class="dot"></div><div class="col-title">실시간 삼성 측 우세 기사</div><span class="col-cnt" id="cntS">-</span><div class="col-sub">삼성 옹호 / 노조 비판</div></div>
@@ -529,9 +731,37 @@ header{{position:relative;z-index:10;display:flex;align-items:center;justify-con
   </div>
 </div>
 
+<!-- 유튜브 섹션 -->
+<div class="sec-divider"><div class="sec-label">유튜브 언론전</div></div>
+<div class="yt-sec">
+  <div class="yt-col samsung">
+    <div class="yt-col-hdr"><span class="dot-y" style="background:#42a5f5;box-shadow:0 0 5px #42a5f5"></span>삼성 측 우세 유튜브 TOP 3<span class="yt-cnt" id="cntYtS" style="margin-left:auto">-</span></div>
+    <div id="ytS"></div>
+  </div>
+  <div class="yt-col union">
+    <div class="yt-col-hdr"><span class="dot-y" style="background:#ef5350;box-shadow:0 0 5px #ef5350"></span>노조 측 우세 유튜브 TOP 3<span class="yt-cnt" id="cntYtU" style="margin-left:auto">-</span></div>
+    <div id="ytU"></div>
+  </div>
+</div>
+
+<!-- 언론사 편향도 랭킹 -->
+<div class="sec-divider"><div class="sec-label">언론사 편향도 TOP 10</div></div>
+<div class="media-sec">
+  <div class="media-col samsung">
+    <div class="media-hdr"><span class="dot-y" style="background:#42a5f5;box-shadow:0 0 5px #42a5f5"></span>삼성 우호 언론사</div>
+    <div id="mediaS"></div>
+  </div>
+  <div class="media-col union">
+    <div class="media-hdr"><span class="dot-y" style="background:#ef5350;box-shadow:0 0 5px #ef5350"></span>노조 우호 언론사</div>
+    <div id="mediaU"></div>
+  </div>
+</div>
+
+<!-- 일자별 추이 -->
+<div class="sec-divider"><div class="sec-label">일자별 언론전 추이</div></div>
 <div class="trend-sec">
   <div class="trend-panel">
-    <div class="trend-title">일자별 언론전 추이
+    <div class="trend-title">뉴스 + 유튜브 통합 추이 (2026.02~)
       <div class="trend-legend">
         <div class="tl-i"><div class="tl-dot2" style="background:#1976d2"></div>삼성</div>
         <div class="tl-i"><div class="tl-dot2" style="background:#e53935"></div>노조</div>
@@ -541,14 +771,13 @@ header{{position:relative;z-index:10;display:flex;align-items:center;justify-con
   </div>
 </div>
 
-<div class="sched">자동 업데이트: <span>08:00</span>·<span>12:00</span>·<span>16:00</span> KST &nbsp;|&nbsp; 기준: 전일 00:00~현재 국내외 삼성 노조 기사</div>
+<div class="sched">자동 업데이트: <span>08:00</span>·<span>12:00</span>·<span>16:00</span> KST &nbsp;|&nbsp; 범위: 전일 00:00~현재 국내외 삼성 노조 기사+유튜브</div>
 </div>
 
 <script>
 const DATA  = {data_js};
 const TREND = {trend_js};
 
-/* 로그인 */
 function doLogin(){{
   const pw = document.getElementById('pwInput').value;
   if(pw==='321'){{
@@ -566,32 +795,58 @@ function doLogout(){{
 }}
 document.getElementById('pwInput').addEventListener('keydown',e=>{{if(e.key==='Enter')doLogin();}});
 
-/* 렌더 */
+function fmtViews(n){{
+  if(!n) return '';
+  n = parseInt(n);
+  if(n>=10000) return (n/10000).toFixed(1)+'만회';
+  if(n>=1000)  return (n/1000).toFixed(1)+'천회';
+  return n+'회';
+}}
+
 function render(){{
   const d = DATA;
-  // score
-  document.getElementById('barS').style.width = d.samsung_pct+'%';
-  document.getElementById('barU').style.width = d.union_pct+'%';
-  document.getElementById('pctS').textContent = d.samsung_pct+'%';
-  document.getElementById('pctU').textContent = d.union_pct+'%';
-  document.getElementById('lblS').className='sl-item'; document.getElementById('lblU').className='sl-item';
-  if(d.samsung_pct>d.union_pct){{document.getElementById('winB').innerHTML=`현재 <span class="ws">삼성 측</span> 언론 우세 (${{d.samsung_pct}} : ${{d.union_pct}})`;document.getElementById('lblS').classList.add('as');}}
-  else if(d.union_pct>d.samsung_pct){{document.getElementById('winB').innerHTML=`현재 <span class="wu">노조 측</span> 언론 우세 (${{d.samsung_pct}} : ${{d.union_pct}})`;document.getElementById('lblU').classList.add('au');}}
-  else document.getElementById('winB').textContent='50 : 50 균형';
-  // summary
+
+  // 점수바 (통합)
+  const sp = d.combined_s_pct || d.samsung_pct;
+  const up = d.combined_u_pct || d.union_pct;
+  document.getElementById('barS').style.width = sp+'%';
+  document.getElementById('barU').style.width = up+'%';
+  document.getElementById('pctS').textContent = sp+'%';
+  document.getElementById('pctU').textContent = up+'%';
+  document.getElementById('lblS').className='sl-item';
+  document.getElementById('lblU').className='sl-item';
+  if(sp>up){{
+    document.getElementById('winB').innerHTML=`현재 <span class="ws">삼성 측</span> 언론 우세 (${{sp}} : ${{up}})`;
+    document.getElementById('lblS').classList.add('as');
+  }} else if(up>sp){{
+    document.getElementById('winB').innerHTML=`현재 <span class="wu">노조 측</span> 언론 우세 (${{sp}} : ${{up}})`;
+    document.getElementById('lblU').classList.add('au');
+  }} else document.getElementById('winB').textContent='50 : 50 균형';
+
+  // 논지
   document.getElementById('sumS').textContent = d.samsung_summary||'-';
   document.getElementById('sumU').textContent = d.union_summary||'-';
-  // counts
+
+  // 기사 카운트
   document.getElementById('cntS').textContent = '총 '+d.samsung_total+'건';
   document.getElementById('cntU').textContent = '총 '+d.union_total+'건';
-  // facts
+
+  // 팩트
   document.getElementById('factsList').innerHTML=(d.facts||[]).map((f,i)=>
     `<div class="fact-item"><span class="fact-num">${{i+1}}</span><span class="fact-text">${{f}}</span></div>`).join('');
-  // timeline
+
+  // 주요 타임라인
   document.getElementById('timelineList').innerHTML=(d.timeline||[]).map(t=>
     `<div class="tl-item"><div class="tl-dot"></div><div class="tl-date">${{t.date}}</div><div class="tl-ev">${{t.event}}</div></div>`).join('');
-  // articles
-  function artHTML(arts, side){{
+
+  // 전삼노 타임라인
+  document.getElementById('jsnList').innerHTML=(d.jsn_timeline||[]).length
+    ? (d.jsn_timeline||[]).map(t=>
+        `<div class="tl-item"><div class="tl-dot-r"></div><div class="tl-date">${{t.date}}</div><div class="tl-ev">${{t.event}}</div></div>`).join('')
+    : '<div style="color:#3a3a3a;padding:20px;text-align:center;font-size:11px">데이터 수집 중</div>';
+
+  // 뉴스 기사
+  function artHTML(arts){{
     if(!arts||!arts.length) return '<div style="color:#3a3a3a;padding:24px;text-align:center;font-size:12px">해당 기사 없음</div>';
     return arts.map((a,i)=>`<div class="art-card">
       <div class="art-rank">#${{i+1}} 중요도순</div>
@@ -600,17 +855,57 @@ function render(){{
       <div class="art-meta"><span>${{a.source||''}}</span><span class="date">${{a.published||''}}</span></div>
     </div>`).join('');
   }}
-  document.getElementById('artS').innerHTML = artHTML(d.samsung,'samsung');
-  document.getElementById('artU').innerHTML = artHTML(d.union,'union');
-  // trend chart
+  document.getElementById('artS').innerHTML = artHTML(d.samsung);
+  document.getElementById('artU').innerHTML = artHTML(d.union);
+
+  // 유튜브 카운트
+  document.getElementById('cntYtS').textContent = '총 '+(d.yt_s_cnt||0)+'건';
+  document.getElementById('cntYtU').textContent = '총 '+(d.yt_u_cnt||0)+'건';
+
+  // 유튜브 카드
+  function ytHTML(vids){{
+    if(!vids||!vids.length) return '<div style="color:#3a3a3a;padding:20px;text-align:center;font-size:11px">유튜브 데이터 없음</div>';
+    return vids.map(v=>{{
+      const views = fmtViews(v.view_count);
+      return `<div class="yt-card">
+        <img class="yt-thumb" src="${{v.thumbnail||''}}" alt="" loading="lazy" onerror="this.style.display='none'">
+        <div class="yt-info">
+          <div class="yt-title"><a href="${{v.url}}" target="_blank" rel="noopener">${{v.title}}</a></div>
+          <div class="yt-meta">
+            <span>${{v.channel||''}}</span>
+            ${{views?`<span class="yt-views">${{views}}</span>`:''}}
+            <span style="margin-left:auto">${{v.upload_date||''}}</span>
+          </div>
+        </div>
+      </div>`;
+    }}).join('');
+  }}
+  document.getElementById('ytS').innerHTML = ytHTML(d.yt_samsung);
+  document.getElementById('ytU').innerHTML = ytHTML(d.yt_union);
+
+  // 언론사 랭킹
+  function mediaHTML(media){{
+    if(!media||!media.length) return '<div style="color:#3a3a3a;padding:12px;text-align:center;font-size:11px">데이터 없음</div>';
+    const max = media[0][1];
+    return media.map(([name,cnt],i)=>
+      `<div class="media-row">
+        <span class="media-rank ${{i<3?'top3':''}}">#${{i+1}}</span>
+        <span class="media-name">${{name}}</span>
+        <div class="media-bar-wrap"><div class="media-bar" style="width:${{Math.round(cnt/max*100)}}%"></div></div>
+        <span class="media-cnt">${{cnt}}</span>
+      </div>`).join('');
+  }}
+  document.getElementById('mediaS').innerHTML = mediaHTML(d.s_media);
+  document.getElementById('mediaU').innerHTML = mediaHTML(d.u_media);
+
+  // 추이 차트
   if(TREND&&TREND.length>1){{
-    // 데이터가 많으면 날짜만, 적으면 날짜+시간
     const labels = TREND.map(h=>TREND.length>30 ? h.time.slice(5,10) : h.time.slice(5,16));
     new Chart(document.getElementById('trendChart').getContext('2d'),{{
       type:'line',
       data:{{labels,datasets:[
         {{label:'삼성',data:TREND.map(h=>h.samsung_pct),borderColor:'#1976d2',backgroundColor:'rgba(25,118,210,.12)',fill:true,tension:0.4,pointRadius:3,borderWidth:2}},
-        {{label:'노조',data:TREND.map(h=>h.union_pct),  borderColor:'#e53935',backgroundColor:'rgba(229,57,53,.1)', fill:true,tension:0.4,pointRadius:3,borderWidth:2}}
+        {{label:'노조',data:TREND.map(h=>h.union_pct),  borderColor:'#e53935',backgroundColor:'rgba(229,57,53,.10)',fill:true,tension:0.4,pointRadius:3,borderWidth:2}}
       ]}},
       options:{{responsive:true,maintainAspectRatio:false,
         scales:{{
@@ -644,15 +939,28 @@ def main():
     tl_arts = fetch_timeline_articles()
     print(f'  최근 {len(arts)}건 / 타임라인용 {len(tl_arts)}건')
 
+    print('전삼노 홈페이지 수집 중...')
+    jsn_posts = fetch_jeonsamno()
+
+    print('유튜브 수집 중...')
+    yt_videos = fetch_youtube_videos()
+
     print('분류 중...')
-    top_s, top_u, s_pct, u_pct, s_cnt, u_cnt = classify(arts)
-    print(f'  삼성측 {s_cnt}건 / 노조측 {u_cnt}건 | {s_pct}:{u_pct}')
+    top_s, top_u, s_pct, u_pct, s_cnt, u_cnt, s_media, u_media = classify(arts)
+    print(f'  뉴스 삼성측 {s_cnt}건 / 노조측 {u_cnt}건 | {s_pct}:{u_pct}')
+
+    top_s_yt, top_u_yt, yt_s_cnt, yt_u_cnt, yt_s_pct, yt_u_pct = classify_youtube(yt_videos)
+    print(f'  유튜브 삼성측 {yt_s_cnt}건 / 노조측 {yt_u_cnt}건 | {yt_s_pct}:{yt_u_pct}')
+
+    # 뉴스 70% + 유튜브 30% 통합 점수
+    combined_s = round(s_pct * 0.7 + yt_s_pct * 0.3)
+    combined_u = 100 - combined_s
 
     print('역사 추이 백필 확인 중...')
     backfill_trend()
 
     print('Claude 요약 생성 중...')
-    s_sum, u_sum, facts, timeline = ai_generate(arts, tl_arts, top_s, top_u)
+    s_sum, u_sum, facts, timeline, jsn_timeline = ai_generate(arts, tl_arts, top_s, top_u, jsn_posts)
 
     data = {
         'updated_at':      now_str,
@@ -660,6 +968,8 @@ def main():
         'union':           top_u,
         'samsung_pct':     s_pct,
         'union_pct':       u_pct,
+        'combined_s_pct':  combined_s,
+        'combined_u_pct':  combined_u,
         'total_fetched':   len(arts),
         'samsung_total':   s_cnt,
         'union_total':     u_cnt,
@@ -667,9 +977,18 @@ def main():
         'union_summary':   u_sum,
         'facts':           facts,
         'timeline':        timeline,
+        'jsn_timeline':    jsn_timeline,
+        'yt_samsung':      top_s_yt,
+        'yt_union':        top_u_yt,
+        'yt_s_cnt':        yt_s_cnt,
+        'yt_u_cnt':        yt_u_cnt,
+        'yt_s_pct':        yt_s_pct,
+        'yt_u_pct':        yt_u_pct,
+        's_media':         s_media,
+        'u_media':         u_media,
     }
 
-    save_trend(now_str, s_pct, u_pct)
+    save_trend(now_str, combined_s, combined_u)
     trend_history = []
     if os.path.exists(TREND_FILE):
         with open(TREND_FILE, encoding='utf-8') as f:

@@ -26,7 +26,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install feedparser anthropic
+        run: pip install feedparser anthropic requests beautifulsoup4 yt-dlp
 
       - name: Generate report
         env:
