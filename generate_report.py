@@ -85,11 +85,15 @@ RSS_FEEDS = [
 ]
 
 TIMELINE_FEEDS = [
-    f'https://news.google.com/rss/search?q={_enc("삼성전자 노조 파업 after:2026-01-01")}&hl=ko&gl=KR&ceid=KR:ko',
-    f'https://news.google.com/rss/search?q={_enc("삼성전자 전삼노 after:2026-01-01")}&hl=ko&gl=KR&ceid=KR:ko',
-    f'https://news.google.com/rss/search?q={_enc("삼성전자 노사 임금협상 after:2026-01-01")}&hl=ko&gl=KR&ceid=KR:ko',
-    f'https://news.google.com/rss/search?q={_enc("삼성전자 파업 긴급조정")}&hl=ko&gl=KR&ceid=KR:ko',
+    f'https://news.google.com/rss/search?q={_enc("삼성전자 노조 파업 after:2026-02-01")}&hl=ko&gl=KR&ceid=KR:ko',
+    f'https://news.google.com/rss/search?q={_enc("삼성전자 전삼노 파업 after:2026-02-01")}&hl=ko&gl=KR&ceid=KR:ko',
+    f'https://news.google.com/rss/search?q={_enc("삼성전자 노사 임금협상 after:2026-02-01")}&hl=ko&gl=KR&ceid=KR:ko',
+    f'https://news.google.com/rss/search?q={_enc("삼성전자 파업 긴급조정 after:2026-02-01")}&hl=ko&gl=KR&ceid=KR:ko',
+    f'https://news.google.com/rss/search?q={_enc("삼성전자 노조 손배소 after:2026-02-01")}&hl=ko&gl=KR&ceid=KR:ko',
+    f'https://news.google.com/rss/search?q={_enc("삼성전자 파업 단체교섭 after:2026-02-01")}&hl=ko&gl=KR&ceid=KR:ko',
+    f'https://news.google.com/rss/search?q={_enc("삼성전자 노조 탈퇴 내홍 after:2026-02-01")}&hl=ko&gl=KR&ceid=KR:ko',
     f'https://news.google.com/rss/search?q={_enc("Samsung Electronics union strike 2026")}&hl=en&gl=US&ceid=US:en',
+    f'https://news.google.com/rss/search?q={_enc("Samsung union walkout labor 2026")}&hl=en&gl=US&ceid=US:en',
 ]
 
 # ── 유틸 ─────────────────────────────────────────────────────────
@@ -133,12 +137,12 @@ def fetch_articles():
     return arts
 
 def fetch_timeline_articles():
-    cutoff = datetime.now() - timedelta(days=180)
+    cutoff = datetime(2026, 2, 1)
     seen, arts = set(), []
     for url in TIMELINE_FEEDS:
         try:
             feed = feedparser.parse(url, request_headers={'User-Agent': 'Mozilla/5.0'})
-            for e in feed.entries[:50]:
+            for e in feed.entries[:100]:
                 link = e.get('link', '')
                 if link in seen: continue
                 seen.add(link)
@@ -189,7 +193,7 @@ def ai_generate(recent_arts, tl_arts, top_s, top_u):
     s_items = '\n'.join([f"- {a['title']}" for a in top_s]) or '(없음)'
     u_items = '\n'.join([f"- {a['title']}" for a in top_u]) or '(없음)'
     recent  = '\n'.join([f"- [{a['published']}] {a['title']}" for a in recent_arts[:25]])
-    tl_items= '\n'.join([f"- [{a['published']}] {a['title']}" for a in tl_arts[:60]]) or recent
+    tl_items= '\n'.join([f"- [{a['published']}] {a['title']}" for a in tl_arts[:120]]) or recent
 
     # 논지 요약
     r1 = client.messages.create(model='claude-haiku-4-5-20251001', max_tokens=600,
@@ -209,24 +213,24 @@ def ai_generate(recent_arts, tl_arts, top_s, top_u):
     if m: u_sum = m.group(1).strip().replace('\n', ' ')
 
     # 팩트 + 타임라인
-    r2 = client.messages.create(model='claude-haiku-4-5-20251001', max_tokens=900,
+    r2 = client.messages.create(model='claude-haiku-4-5-20251001', max_tokens=2000,
         messages=[{'role':'user','content':f"""삼성전자 노사 갈등 기사들입니다.
 
 [최근 기사]
 {recent}
 
-[전체 기간 기사]
+[전체 기간 기사 (2026년 2월~)]
 {tl_items}
 
-아래 형식으로만 출력:
+아래 형식으로만 출력하세요. FACT 5개, TIMELINE은 2026년 2월부터 현재까지 주요 사건을 날짜순으로 빠짐없이 모두 나열(최대 25개):
 FACT: (중립 사실)
 FACT: (중립 사실)
 FACT: (중립 사실)
 FACT: (중립 사실)
 FACT: (중립 사실)
-TIMELINE: (YYYY-MM-DD) | (사건 요약)
-TIMELINE: (YYYY-MM-DD) | (사건 요약)
-(최대 10개, 날짜 오름차순)"""}])
+TIMELINE: YYYY-MM-DD | (사건 요약)
+TIMELINE: YYYY-MM-DD | (사건 요약)
+...(날짜 오름차순, 중복 없이 모두)"""}])
     facts, timeline = [], []
     for line in r2.content[0].text.splitlines():
         line = line.strip()
@@ -511,7 +515,7 @@ header{{position:relative;z-index:10;display:flex;align-items:center;justify-con
 
 <div class="ft-sec">
   <div class="panel"><div class="panel-title"><span class="dot-y"></span>실시간 팩트 현황<span style="color:#444;font-size:9px;margin-left:auto">중립·사실 기반</span></div><div id="factsList"></div></div>
-  <div class="panel"><div class="panel-title"><span class="dot-g"></span>주요 사건 타임라인<span style="color:#444;font-size:9px;margin-left:auto">파업 시작부터</span></div><div id="timelineList"></div></div>
+  <div class="panel"><div class="panel-title"><span class="dot-g"></span>주요 사건 타임라인<span style="color:#444;font-size:9px;margin-left:auto">2026년 2월~</span></div><div id="timelineList" style="max-height:480px;overflow-y:auto"></div></div>
 </div>
 
 <div class="grid">
