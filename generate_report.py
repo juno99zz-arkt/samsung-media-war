@@ -22,6 +22,8 @@ TOPIC_UNION = ['노조','파업','조합원','단협','단체교섭','노동자'
 SAMSUNG_SIGNALS = [
     '불법파업','위법파업','불법 파업','위법 파업','업무방해','조업방해','생산방해',
     '파업 강행','강행 파업','총파업 강행','파업 장기화','상습 파업',
+    '파업 반발','총파업 반발','파업에 반발','총파업에 반발','노조에 반발','파업 반대',
+    '주주 반발','주주 반대','주주 비판',
     '손배소','손해배상 청구','손해배상 소송','가처분 신청','가처분 결정',
     '법적절차 돌입','법적 대응 착수','법적 조치','직권중재',
     '내홍','노조 내홍','탈퇴 러시','탈퇴 행렬','노조 탈퇴','조합원 이탈','노조 분열',
@@ -268,8 +270,8 @@ YT_SAMSUNG_CH = ['조선일보', '중앙일보', '동아일보', '매일경제',
 def classify_youtube(videos):
     s_list, u_list = [], []
     for v in videos:
-        s, u = score(v['_text'])
-        # 제목 키워드로 점수가 0이면 채널 편향만 약하게 반영
+        # 제목만으로 분류 — description은 맥락 오염 위험이 높아 사용 안 함
+        s, u = score(v['title'])
         if s == 0 and u == 0:
             ch = v.get('channel', '').lower()
             if   any(k in ch for k in YT_UNION_CH):   u = 1
@@ -291,10 +293,40 @@ def classify_youtube(videos):
     return ([a for a, _, _ in s_list[:5]], [a for a, _, _ in u_list[:5]],
             len(s_list), len(u_list), yt_s_pct, 100 - yt_s_pct)
 
-# ── 분류 ─────────────────────────────────────────────────────────
-def classify(articles):
-    s_list, u_list = [], []
-    s_sources, u_sources = {}, {}
+# ── 100일 언론사 편향 분석 ────────────────────────────────────────
+def fetch_articles_100days():
+    """최근 100일 기사 수집 (언론사 편향도 분석 전용)"""
+    cutoff = datetime.now() - timedelta(days=100)
+    seen, arts = set(), []
+    all_feeds = list(TIMELINE_FEEDS) + list(RSS_FEEDS)
+    for url in all_feeds:
+        try:
+            feed = feedparser.parse(url, request_headers={'User-Agent': 'Mozilla/5.0'})
+            feed_title = feed.feed.get('title', '')
+            for e in feed.entries[:100]:
+                link = e.get('link', '')
+                if link in seen: continue
+                seen.add(link)
+                try:    pub = datetime(*e.published_parsed[:6])
+                except: pub = datetime.now()
+                if pub < cutoff: continue
+                raw_title = strip_html(e.get('title', ''))
+                m = re.search(r'^(.+?)\s+-\s+([^-]{2,25})$', raw_title)
+                if m:
+                    title  = m.group(1).strip()
+                    source = m.group(2).strip()
+                else:
+                    title  = raw_title
+                    source = clean_source(feed_title)
+                full = title + ' ' + strip_html(e.get('summary', ''))
+                if not is_relevant(full): continue
+                arts.append({'title': title, 'source': source, '_text': full})
+        except: pass
+    return arts
+
+def compute_media_bias(articles):
+    """기사 목록에서 언론사별 삼성/노조 우호 기사 수 집계"""
+    s_src, u_src = {}, {}
     for art in articles:
         s, u = score(art['_text'])
         if s == 0 and u == 0:
@@ -302,18 +334,30 @@ def classify(articles):
             if   any(k in tl for k in FALLBACK_S): s = 1
             elif any(k in tl for k in FALLBACK_U): u = 1
             else: continue
-        a   = {k: v for k, v in art.items() if not k.startswith('_')}
         src = art.get('source', '기타') or '기타'
-        if   s > u:
-            s_list.append((a, s))
-            s_sources[src] = s_sources.get(src, 0) + 1
-        elif u > s:
-            u_list.append((a, u))
-            u_sources[src] = u_sources.get(src, 0) + 1
+        if   s > u: s_src[src] = s_src.get(src, 0) + 1
+        elif u > s: u_src[src] = u_src.get(src, 0) + 1
         elif s > 0:
-            s_list.append((a, s)); u_list.append((a, u))
-            s_sources[src] = s_sources.get(src, 0) + 1
-            u_sources[src] = u_sources.get(src, 0) + 1
+            s_src[src] = s_src.get(src, 0) + 1
+            u_src[src] = u_src.get(src, 0) + 1
+    s_media = sorted(s_src.items(), key=lambda x: -x[1])[:10]
+    u_media = sorted(u_src.items(), key=lambda x: -x[1])[:10]
+    return s_media, u_media
+
+# ── 분류 ─────────────────────────────────────────────────────────
+def classify(articles):
+    s_list, u_list = [], []
+    for art in articles:
+        s, u = score(art['_text'])
+        if s == 0 and u == 0:
+            tl = art['title'].lower()
+            if   any(k in tl for k in FALLBACK_S): s = 1
+            elif any(k in tl for k in FALLBACK_U): u = 1
+            else: continue
+        a = {k: v for k, v in art.items() if not k.startswith('_')}
+        if   s > u: s_list.append((a, s))
+        elif u > s: u_list.append((a, u))
+        elif s > 0: s_list.append((a, s)); u_list.append((a, u))
 
     s_list.sort(key=lambda x: -x[1])
     u_list.sort(key=lambda x: -x[1])
@@ -324,10 +368,7 @@ def classify(articles):
     sp, up = power(s_list), power(u_list)
     total  = sp + up
     s_pct  = round(sp / total * 100) if total else 50
-
-    s_media = sorted(s_sources.items(), key=lambda x: -x[1])[:10]
-    u_media = sorted(u_sources.items(), key=lambda x: -x[1])[:10]
-    return top_s, top_u, s_pct, 100 - s_pct, len(s_list), len(u_list), s_media, u_media
+    return top_s, top_u, s_pct, 100 - s_pct, len(s_list), len(u_list)
 
 # ── Claude API ────────────────────────────────────────────────────
 def ai_generate(recent_arts, tl_arts, top_s, top_u):
@@ -743,7 +784,7 @@ header{{position:relative;z-index:10;display:flex;align-items:center;justify-con
 </div>
 
 <!-- 언론사 편향도 랭킹 -->
-<div class="sec-divider"><div class="sec-label">언론사 편향도 TOP 10</div></div>
+<div class="sec-divider"><div class="sec-label">언론사 편향도 TOP 10 <span style="font-size:9px;color:#444;letter-spacing:0;font-weight:400">최근 100일 기준</span></div></div>
 <div class="media-sec">
   <div class="media-col samsung">
     <div class="media-hdr"><span class="dot-y" style="background:#42a5f5;box-shadow:0 0 5px #42a5f5"></span>삼성 우호 언론사</div>
@@ -935,8 +976,13 @@ def main():
     yt_videos = fetch_youtube_videos()
 
     print('분류 중...')
-    top_s, top_u, s_pct, u_pct, s_cnt, u_cnt, s_media, u_media = classify(arts)
+    top_s, top_u, s_pct, u_pct, s_cnt, u_cnt = classify(arts)
     print(f'  뉴스 삼성측 {s_cnt}건 / 노조측 {u_cnt}건 | {s_pct}:{u_pct}')
+
+    print('100일 언론사 편향 분석 중...')
+    arts_100d = fetch_articles_100days()
+    s_media, u_media = compute_media_bias(arts_100d)
+    print(f'  100일 기사 {len(arts_100d)}건 → 삼성우호 {len(s_media)}개 언론사 / 노조우호 {len(u_media)}개 언론사')
 
     top_s_yt, top_u_yt, yt_s_cnt, yt_u_cnt, yt_s_pct, yt_u_pct = classify_youtube(yt_videos)
     print(f'  유튜브 삼성측 {yt_s_cnt}건 / 노조측 {yt_u_cnt}건 | {yt_s_pct}:{yt_u_pct}')
