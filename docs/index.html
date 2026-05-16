@@ -68,19 +68,21 @@ header{position:relative;z-index:10;display:flex;align-items:center;justify-cont
 .tl-date{font-size:10px;color:#555;font-weight:600;white-space:nowrap;width:72px;flex-shrink:0;margin-top:2px}
 .tl-ev{font-size:11.5px;color:#ccc;line-height:1.6}
 .scroll-panel{max-height:480px;overflow-y:auto}
-/* 이슈별 논지 매트릭스 */
-.issue-sec{position:relative;z-index:5;padding:0 24px 14px}
-.issue-table{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:11px;overflow:hidden}
-.issue-row{display:grid;grid-template-columns:110px 1fr 1fr;border-bottom:1px solid rgba(255,255,255,.05)}
-.issue-row:last-child{border-bottom:none}
-.issue-hdr-row{background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.09)}
-.issue-cell{padding:11px 14px;font-size:11.5px;line-height:1.7}
-.issue-lbl-hdr{font-size:9px;font-weight:700;letter-spacing:2px;color:#555;text-transform:uppercase;display:flex;align-items:center}
-.issue-s-hdr{font-size:9px;font-weight:700;letter-spacing:2px;color:#42a5f5;text-transform:uppercase;border-left:1px solid rgba(255,255,255,.06);display:flex;align-items:center}
-.issue-u-hdr{font-size:9px;font-weight:700;letter-spacing:2px;color:#ef5350;text-transform:uppercase;border-left:1px solid rgba(255,255,255,.06);display:flex;align-items:center}
-.issue-lbl{font-size:11px;font-weight:700;color:#ffd54f;display:flex;align-items:center}
-.issue-s{color:#c5d8f0;border-left:1px solid rgba(255,255,255,.05);background:rgba(21,101,192,.06)}
-.issue-u{color:#f0c5c5;border-left:1px solid rgba(255,255,255,.05);background:rgba(198,40,40,.06)}
+/* summary (논지 + 요구사항) */
+.sum-sec{position:relative;z-index:5;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 24px 14px}
+.sum-card{border-radius:11px;padding:16px 18px}
+.sum-card.samsung{background:linear-gradient(135deg,rgba(13,71,161,.18),rgba(13,71,161,.05));border:1px solid rgba(21,101,192,.3)}
+.sum-card.union{background:linear-gradient(135deg,rgba(183,28,28,.18),rgba(183,28,28,.05));border:1px solid rgba(198,40,40,.3)}
+.sum-label{font-size:9px;font-weight:700;letter-spacing:2px;margin-bottom:9px;text-transform:uppercase}
+.sum-card.samsung .sum-label{color:#42a5f5}.sum-card.union .sum-label{color:#ef5350}
+.sum-text{font-size:12px;line-height:1.8;color:#bbb;margin-bottom:13px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.07)}
+.demand-label{font-size:9px;font-weight:700;letter-spacing:1.5px;color:#555;margin-bottom:8px;text-transform:uppercase}
+.demand-list{list-style:none;padding:0;margin:0}
+.demand-item{display:flex;gap:8px;padding:6px 0;font-size:11.5px;color:#b0b0b0;line-height:1.65;border-bottom:1px solid rgba(255,255,255,.04)}
+.demand-item:last-child{border-bottom:none}
+.demand-bullet{flex-shrink:0;margin-top:3px;width:5px;height:5px;border-radius:50%}
+.sum-card.samsung .demand-bullet{background:#1976d2;box-shadow:0 0 4px #1976d2}
+.sum-card.union .demand-bullet{background:#e53935;box-shadow:0 0 4px #e53935}
 /* article grid */
 .grid{position:relative;z-index:5;display:grid;grid-template-columns:1fr 1fr;padding:0 16px 24px}
 .col{padding:0 12px}
@@ -154,10 +156,7 @@ header{position:relative;z-index:10;display:flex;align-items:center;justify-cont
   .ft-sec{grid-template-columns:1fr 1fr}
 }
 @media(max-width:768px){
-  .issue-row,.issue-hdr-row{grid-template-columns:1fr;display:block}
-  .issue-s-hdr,.issue-u-hdr,.issue-s,.issue-u{border-left:none;border-top:1px solid rgba(255,255,255,.05)}
-  .issue-lbl{padding-bottom:4px;font-size:10px}
-  .ft-sec,.yt-sec,.media-sec,.grid{grid-template-columns:1fr}
+  .ft-sec,.sum-sec,.yt-sec,.media-sec,.grid{grid-template-columns:1fr}
   header{flex-direction:column;align-items:flex-start;gap:8px}
   .hdr-r{flex-wrap:wrap}
   .main-title{font-size:26px}
@@ -186,7 +185,7 @@ header{position:relative;z-index:10;display:flex;align-items:center;justify-cont
 <header>
   <div class="site-badge">Samsung Media Intelligence</div>
   <div class="hdr-r">
-    <div class="upd-time">최종 업데이트: 2026-05-16 02:50:01</div>
+    <div class="upd-time">최종 업데이트: 2026-05-16 03:04:28</div>
     <span class="logout-btn" onclick="doLogout()">로그아웃</span>
   </div>
 </header>
@@ -231,10 +230,21 @@ header{position:relative;z-index:10;display:flex;align-items:center;justify-cont
   </div>
 </div>
 
-<!-- 이슈별 논지 매트릭스 -->
-<div class="sec-divider"><div class="sec-label">이슈별 주요 논지</div></div>
-<div class="issue-sec">
-  <div class="issue-table" id="issueTable"></div>
+<!-- 논지 + 구체적 요구사항 -->
+<div class="sec-divider"><div class="sec-label">주요 논지 및 구체적 요구사항</div></div>
+<div class="sum-sec">
+  <div class="sum-card samsung">
+    <div class="sum-label">삼성 측 주요 논지</div>
+    <div class="sum-text" id="sumS"></div>
+    <div class="demand-label">구체적 입장 / 제안</div>
+    <ul class="demand-list" id="demandS"></ul>
+  </div>
+  <div class="sum-card union">
+    <div class="sum-label">노조 측 주요 논지</div>
+    <div class="sum-text" id="sumU"></div>
+    <div class="demand-label">구체적 요구사항</div>
+    <ul class="demand-list" id="demandU"></ul>
+  </div>
 </div>
 
 <!-- 뉴스 기사 -->
@@ -293,8 +303,8 @@ header{position:relative;z-index:10;display:flex;align-items:center;justify-cont
 </div>
 
 <script>
-const DATA  = {"updated_at": "2026-05-16 02:50:01", "samsung": [{"title": "주주단체, 손배소 등 법적절차 돌입…“노조 주장, 상법상 자본충실원칙 위배” [삼성전자 파업 D-6]", "link": "https://news.google.com/rss/articles/CBMiVkFVX3lxTE5TZlVQbXppaHJSX3l6RXZCcUFUNFpQVjg2R182cFI2LThBVHZsMFNONkVZWUR0UGpTWHVOakpLU2c1VHEwSjdJeEpaMWRXY0Q1S3lIMGpR?oc=5", "summary": "주주단체, 손배소 등 법적절차 돌입…“노조 주장, 상법상 자본충실원칙 위배” [삼성전자 파업 D-6] &nbsp;&nbsp; 헤럴드경제", "published": "2026-05-15 01:07", "source": "헤럴드경제"}, {"title": "삼성전자 사측은 \"심려끼쳐 죄송\", 대국민 사과...노조는 \"파업 전 대화 없다\"", "link": "https://news.google.com/rss/articles/CBMigwFBVV95cUxNTjFWeHNSUGF6SkdwR0U3M3VFWEZoTTdkbGtXSENFWHljRTFObDI1bVl1Y1hSZXloeWNnLUJXdUlzZTJsZDlXcmQxVXg3ejg3dDBnSlBJdHJUTXlOSWt2djA4MTh1UnhzTFJialgzX3B3TEFIU2RxM29aNGRKdFpHU0NYRQ?oc=5", "summary": "삼성전자 사측은 \"심려끼쳐 죄송\", 대국민 사과...노조는 \"파업 전 대화 없다\" &nbsp;&nbsp; 조선일보 삼성전자 “조건 없이 대화” 제안에도…노조 사실상 총파업 강행 &nbsp;&nbsp; 경기일보 삼성 반도체 사장단, 직접 노조 만나러 평택행…“조건 없이 대화” &nbsp;&nbsp; 한겨레", "published": "2026-05-15 05:12", "source": "조선일보"}, {"title": "[단독] 삼성전자 노조 파업 강행 시나리오 -> 생산 차질액 100조 원 육박 우려 => 역대급 1분기 ‘실적 쇼크’ 반전 우려 = 메모리 독주 체제 속 초대형 암초 직면", "link": "https://news.google.com/rss/articles/CBMic0FVX3lxTE5nWXBxRzdPTEJ5VmpCTkJIU3VGS0RGaE9PNGtOWG1ZZ0dpXy03ekFCdmZmQi1YRHlmWHpRRklOTjNkeU4yTXhuRUo3VzZPaWJvdFhON2dnTURVNnB4bUZwSnROT2VYOEpGbFV2ZlhKVFkxZ1k?oc=5", "summary": "[단독] 삼성전자 노조 파업 강행 시나리오 -> 생산 차질액 100조 원 육박 우려 => 역대급 1분기 ‘실적 쇼크’ 반전 우려 = 메모리 독주 체제 속 초대형 암초 직면 &nbsp;&nbsp; 데일리머니", "published": "2026-05-16 02:17", "source": "데일리머니"}, {"title": "삼성전자 주주단체 “노조 파업=불법”…손배소·가처분 예고", "link": "https://news.google.com/rss/articles/CBMigAFBVV95cUxNRGt4ZzZ6OHNzMWpnWGlUdFBUQUpOcC0yMlhfWkpTVDhpUEstaFVSNUxzYzFGdk5KZFZBV1JDS2hNWHZ0Z0FndDJwbTdDSHNCS2RJbk1zeEJoMnJLblBDUWxMdHBTMnd5REN0Vy1XMGY0VGQ3TG1hR3JITkt6ekNLRw?oc=5", "summary": "삼성전자 주주단체 “노조 파업=불법”…손배소·가처분 예고 &nbsp;&nbsp; 이데일리", "published": "2026-05-15 02:16", "source": "이데일리"}, {"title": "삼성전자 총파업 D-5 노조원 4000명 노조 탈퇴…'파업 동력' 시들", "link": "https://news.google.com/rss/articles/CBMiZEFVX3lxTE15c1cxSkRHSDFDYWFMY3U3Z2dJZXMxb0ExdUpxZXNBbFY3ajliel9Fd2VnRmFhZHdqclExemgwbTZtb3hhQnlfNWxSSWtzU21LSGEtcDFIdHB6a3dpcEZ1bkYwanA?oc=5", "summary": "삼성전자 총파업 D-5 노조원 4000명 노조 탈퇴…'파업 동력' 시들 &nbsp;&nbsp; 뉴스1", "published": "2026-05-15 22:00", "source": "뉴스1"}], "union": [], "samsung_pct": 100, "union_pct": 0, "combined_s_pct": 98, "combined_u_pct": 2, "total_fetched": 101, "samsung_total": 13, "union_total": 0, "issues": [{"label": "성과급 vs 기본급", "samsung": "(최근 기사 없음)", "union": "(최근 기사 없음)"}, {"label": "파업 합법성", "samsung": "노조의 파업은 상법상 자본충실원칙을 위배하는 불법행위이며, 손배소와 가처분을 통해 법적 절차에 돌입할 예정이다.", "union": "(최근 기사 없음)"}, {"label": "손배소", "samsung": "주주단체가 노조를 상대로 손배소 제기 및 가처분 신청을 예고하고 있다.", "union": "(최근 기사 없음)"}, {"label": "단체협약", "samsung": "(최근 기사 없음)", "union": "파업 전 사측과의 대화가 이루어지지 않았다고 주장하고 있다."}], "facts": ["삼성전자 노조는 성과급 상한 폐지를 주요 요구 사항으로 임금 교섭을 진행했다.", "삼성전자 노조는 2026년 3월 18일 조합원 93% 이상의 찬성으로 5월 총파업을 가결했다.", "삼성전자 초기업노조는 2026년 4월 17일 과반 노조로 공식 출범했다.", "파업이 진행될 경우 삼성전자의 일일 생산 손실액은 약 1조원대로 추정되고 있다.", "파업을 앞두고 노조 내 의견 차이로 인해 4000명 이상의 탈퇴 신청이 접수되었다."], "timeline": [{"date": "2026-02-19", "event": "초기업노조 급성장에 따른 삼성전자 노사 임단협 협상 시작"}, {"date": "2026-02-22", "event": "임금협상 진행 중 생산 차질 우려 제기"}, {"date": "2026-03-04", "event": "삼성전자 노사 협상 최종 결렬"}, {"date": "2026-03-06", "event": "2년 만의 파업 위기 직면"}, {"date": "2026-03-08", "event": "노조가 파업 불참자에 대한 불이익 예고 및 블랙리스트 논란"}, {"date": "2026-03-10", "event": "노조가 18일간 파업 계획 공식화"}, {"date": "2026-03-18", "event": "조합원 투표로 파업 결의안 93% 이상 가결"}, {"date": "2026-03-24", "event": "노사 임금 교섭 재개"}, {"date": "2026-04-16", "event": "삼성전자가 불법 파업 차단을 위해 법원에 가처분 신청"}, {"date": "2026-04-17", "event": "삼성전자 초기업노조 대표권 확보 공식화"}, {"date": "2026-04-23", "event": "노조 주최로 4만명 규모의 파업 집회 개최"}, {"date": "2026-04-24", "event": "평택 칩 공장 앞에서 4만명 규모 집회 및 이재용 회장 자택 앞 농성 예고"}, {"date": "2026-04-28", "event": "노조위원장의 파업 예고 후 동남아 휴가 논란"}, {"date": "2026-05-01", "event": "삼성바이오로직스 노조가 첫 총파업 개시"}, {"date": "2026-05-03", "event": "반도체 중심 파업 요구에 비반도체 부문 노조의 탈퇴 선언"}, {"date": "2026-05-04", "event": "DX노조의 공동투쟁본부 탈퇴 선언으로 노노 분열 본격화"}, {"date": "2026-05-05", "event": "삼성전자 주주단체가 파업시 노조원 전원을 대상으로 손해배상 소송 경고"}, {"date": "2026-05-06", "event": "삼성전자 주주들의 집회 개최 및 경영진에 대한 경고"}, {"date": "2026-05-07", "event": "정부와 노동계에서 초기업노조 주도 파업을 비판"}, {"date": "2026-05-15", "event": "파업 D-6 상황에서 노사 평행선 지속 및 기사 집중 보도"}, {"date": "2026-05-15", "event": "조합원 4000명 이상의 노조 탈퇴 선언"}, {"date": "2026-05-15", "event": "삼성전자 사측이 대국민 사과 발표"}, {"date": "2026-05-16", "event": "파업 D-5 상황에서 강대강 대치 구도 형성"}], "yt_samsung": [{"title": "삼성 사장단, 대국민 사과…노조 \"파업 끝나고 협상\" / 한국경제TV뉴스", "url": "https://www.youtube.com/watch?v=44sZIf0CfJY", "thumbnail": "https://i.ytimg.com/vi/44sZIf0CfJY/mqdefault.jpg", "view_count": 189165, "channel": "한국경제TV뉴스", "upload_date": ""}, {"title": "[🔴속보] \"삼성전자 노조 성과급 요구는 위법…파업시 전원 손배소\" 주주단체 법적대응 밝혀 / 연합뉴스TV(YonhapnewsTV)", "url": "https://www.youtube.com/watch?v=v22QC4bBwTs", "thumbnail": "https://i.ytimg.com/vi/v22QC4bBwTs/mqdefault.jpg", "view_count": 129193, "channel": "연합뉴스TV", "upload_date": ""}, {"title": "Warning from Samsung Electronics Shareholder Group… \"Will File Damage Claims Against Union Member...", "url": "https://www.youtube.com/watch?v=rJwbIQHMAC8", "thumbnail": "https://i.ytimg.com/vi/rJwbIQHMAC8/mqdefault.jpg", "view_count": 127212, "channel": "JTBC News", "upload_date": ""}, {"title": "파업 안하고 출근할게요\" 삼성전자 신입 MZ가 노조 탈퇴하는 진짜 이유", "url": "https://www.youtube.com/watch?v=vmf6tvlqnZc", "thumbnail": "https://i.ytimg.com/vi/vmf6tvlqnZc/mqdefault.jpg", "view_count": 105154, "channel": "팬더경제학", "upload_date": ""}, {"title": "파업 피해는 시작됐다…삼성, ‘비상 플랜’ 가동 / 채널A / 김진의 돌직구쇼", "url": "https://www.youtube.com/watch?v=xWUb6FY2bgo", "thumbnail": "https://i.ytimg.com/vi/xWUb6FY2bgo/mqdefault.jpg", "view_count": 59043, "channel": "채널A 김진의 돌직구쇼", "upload_date": ""}], "yt_union": [{"title": "르노삼성 노조 ‘파업권’ 확보…한국GM 노조, 파업 ‘보류’", "url": "https://www.youtube.com/watch?v=s46aKaUbZDg", "thumbnail": "https://i.ytimg.com/vi/s46aKaUbZDg/mqdefault.jpg", "view_count": 136, "channel": "SBS Biz 뉴스", "upload_date": ""}, {"title": "르노삼성 노조, 민주노총 가입 추진…車업계 파업리스크 고조", "url": "https://www.youtube.com/watch?v=jhtrk-7Z9H4", "thumbnail": "https://i.ytimg.com/vi/jhtrk-7Z9H4/mqdefault.jpg", "view_count": 108, "channel": "SBS Biz 뉴스", "upload_date": ""}, {"title": "Samsung Faces Strike Threat as Workers Demand Slice of AI-Driven Profits", "url": "https://www.youtube.com/watch?v=4maioyPi9GM", "thumbnail": "https://i.ytimg.com/vi/4maioyPi9GM/mqdefault.jpg", "view_count": 101, "channel": "itci", "upload_date": ""}], "yt_s_cnt": 44, "yt_u_cnt": 3, "yt_s_pct": 94, "yt_u_pct": 6, "s_media": [["v.daum.net", 14], ["네이트", 6], ["조선일보", 5], ["뉴스1", 4], ["뉴스웍스", 3], ["시사저널e", 3], ["데일리안", 3], ["뉴시스", 3], ["중앙일보", 2], ["Chosunbiz", 2]], "u_media": [["노동자 연대", 3], ["테크M", 1], ["The Korea Herald", 1], ["조선일보", 1], ["인더스트리뉴스", 1], ["upi.com", 1], ["Manufacturing.net", 1], ["PCMag", 1], ["부산일보", 1], ["v.daum.net", 1]]};
-const TREND = [{"time": "2026-02-13 12:00:00", "samsung_pct": 0, "union_pct": 100}, {"time": "2026-02-20 12:00:00", "samsung_pct": 8, "union_pct": 92}, {"time": "2026-02-27 12:00:00", "samsung_pct": 10, "union_pct": 90}, {"time": "2026-03-06 12:00:00", "samsung_pct": 55, "union_pct": 45}, {"time": "2026-03-13 12:00:00", "samsung_pct": 12, "union_pct": 88}, {"time": "2026-03-20 12:00:00", "samsung_pct": 12, "union_pct": 88}, {"time": "2026-03-27 12:00:00", "samsung_pct": 29, "union_pct": 71}, {"time": "2026-04-03 12:00:00", "samsung_pct": 43, "union_pct": 57}, {"time": "2026-04-10 12:00:00", "samsung_pct": 54, "union_pct": 46}, {"time": "2026-04-17 12:00:00", "samsung_pct": 36, "union_pct": 64}, {"time": "2026-04-24 12:00:00", "samsung_pct": 35, "union_pct": 65}, {"time": "2026-05-01 12:00:00", "samsung_pct": 73, "union_pct": 27}, {"time": "2026-05-08 12:00:00", "samsung_pct": 14, "union_pct": 86}, {"time": "2026-05-15 21:29:28", "samsung_pct": 85, "union_pct": 15}, {"time": "2026-05-15 12:46:45", "samsung_pct": 85, "union_pct": 15}, {"time": "2026-05-15 13:17:19", "samsung_pct": 84, "union_pct": 16}, {"time": "2026-05-15 23:50:53", "samsung_pct": 80, "union_pct": 20}, {"time": "2026-05-16 00:03:46", "samsung_pct": 95, "union_pct": 5}, {"time": "2026-05-16 02:50:01", "samsung_pct": 98, "union_pct": 2}];
+const DATA  = {"updated_at": "2026-05-16 03:04:28", "samsung": [{"title": "주주단체, 손배소 등 법적절차 돌입…“노조 주장, 상법상 자본충실원칙 위배” [삼성전자 파업 D-6]", "link": "https://news.google.com/rss/articles/CBMiVkFVX3lxTE5TZlVQbXppaHJSX3l6RXZCcUFUNFpQVjg2R182cFI2LThBVHZsMFNONkVZWUR0UGpTWHVOakpLU2c1VHEwSjdJeEpaMWRXY0Q1S3lIMGpR?oc=5", "summary": "주주단체, 손배소 등 법적절차 돌입…“노조 주장, 상법상 자본충실원칙 위배” [삼성전자 파업 D-6] &nbsp;&nbsp; 헤럴드경제", "published": "2026-05-15 01:07", "source": "헤럴드경제"}, {"title": "삼성전자 사측은 \"심려끼쳐 죄송\", 대국민 사과...노조는 \"파업 전 대화 없다\"", "link": "https://news.google.com/rss/articles/CBMigwFBVV95cUxNTjFWeHNSUGF6SkdwR0U3M3VFWEZoTTdkbGtXSENFWHljRTFObDI1bVl1Y1hSZXloeWNnLUJXdUlzZTJsZDlXcmQxVXg3ejg3dDBnSlBJdHJUTXlOSWt2djA4MTh1UnhzTFJialgzX3B3TEFIU2RxM29aNGRKdFpHU0NYRQ?oc=5", "summary": "삼성전자 사측은 \"심려끼쳐 죄송\", 대국민 사과...노조는 \"파업 전 대화 없다\" &nbsp;&nbsp; 조선일보 파업 D-6, 삼성전자 노사 평행선…노조 “6월7일 이후 협의하겠다” &nbsp;&nbsp; 한겨레 녹취까지 깐 삼성전자 노조‥'동의는 구했나' 역풍 &nbsp;&nbsp; MBC 뉴스 삼성전자 총파업 D-5 노조원 4000명 노조 탈퇴…'파업 동력' 시들 &nbsp;&nbsp; 뉴스1 평택 달려간 삼성 사장단 \"조건 없이 대화\"…노조 \"先파업 後교섭\" &nbsp;&nbsp; 한국경제", "published": "2026-05-15 05:12", "source": "조선일보"}, {"title": "[단독] 삼성전자 노조 파업 강행 시나리오 -> 생산 차질액 100조 원 육박 우려 => 역대급 1분기 ‘실적 쇼크’ 반전 우려 = 메모리 독주 체제 속 초대형 암초 직면", "link": "https://news.google.com/rss/articles/CBMic0FVX3lxTE5nWXBxRzdPTEJ5VmpCTkJIU3VGS0RGaE9PNGtOWG1ZZ0dpXy03ekFCdmZmQi1YRHlmWHpRRklOTjNkeU4yTXhuRUo3VzZPaWJvdFhON2dnTURVNnB4bUZwSnROT2VYOEpGbFV2ZlhKVFkxZ1k?oc=5", "summary": "[단독] 삼성전자 노조 파업 강행 시나리오 -> 생산 차질액 100조 원 육박 우려 => 역대급 1분기 ‘실적 쇼크’ 반전 우려 = 메모리 독주 체제 속 초대형 암초 직면 &nbsp;&nbsp; 데일리머니", "published": "2026-05-16 02:17", "source": "데일리머니"}, {"title": "삼성전자 “조건 없이 대화” 제안에도…노조 사실상 총파업 강행", "link": "https://news.google.com/rss/articles/CBMiW0FVX3lxTE9ub1dFd1J4YUFOckNWNU1GNmg3Q1F1VzktQ3pPWVBqblpRWlhlY000TUlkenZkN1VtMEJSMVp3amdHVHpwTFNzN0RYUmNNZW5RTXJwd3dGVExIajg?oc=5", "summary": "삼성전자 “조건 없이 대화” 제안에도…노조 사실상 총파업 강행 &nbsp;&nbsp; 경기일보", "published": "2026-05-15 01:33", "source": "경기일보"}, {"title": "삼성전자 주주단체 “노조 파업=불법”…손배소·가처분 예고", "link": "https://news.google.com/rss/articles/CBMigAFBVV95cUxNRGt4ZzZ6OHNzMWpnWGlUdFBUQUpOcC0yMlhfWkpTVDhpUEstaFVSNUxzYzFGdk5KZFZBV1JDS2hNWHZ0Z0FndDJwbTdDSHNCS2RJbk1zeEJoMnJLblBDUWxMdHBTMnd5REN0Vy1XMGY0VGQ3TG1hR3JITkt6ekNLRw?oc=5", "summary": "삼성전자 주주단체 “노조 파업=불법”…손배소·가처분 예고 &nbsp;&nbsp; 이데일리", "published": "2026-05-15 02:16", "source": "이데일리"}], "union": [], "samsung_pct": 100, "union_pct": 0, "combined_s_pct": 98, "combined_u_pct": 2, "total_fetched": 103, "samsung_total": 12, "union_total": 0, "samsung_summary": "노조의 파업은 상법상 자본충실원칙을 위배하는 불법행위이며, 총 생산 차질액이 100조 원에 달할 수 있는 심각한 경제적 손실을 초래한다. 삼성측은 조건 없이 대화할 의지가 있으나 노조는 파업 전 대화 없이 총파업을 강행하려 한다.", "samsung_demands": ["노조의 불법 파업에 대해 손배소 및 가처분 소송 등 법적 절차를 진행할 예정이다.", "주주단체는 상법상 자본충실원칙에 따라 노조의 파업 강행을 저지하기 위한 법적 대응을 추진한다."], "union_summary": "기사에서 노조측의 입장이 명시적으로 제시되지 않았으나, 삼성측의 사과와 대화 제안에도 불구하고 파업을 강행하는 것으로 보아 보수적 임금 및 근무조건 개선에 대한 요구가 있는 것으로 추정된다.", "union_demands": ["구체적 요구사항이 기사에 명시되지 않았으나, 파업 강행으로 보아 임금 및 처우 개선 협상을 요구하는 것으로 보인다.", "기사에 명시된 노조의 구체적 요구사항이 없으나, 파업 전 실질적 대화를 통한 문제 해결을 요구하는 입장으로 추정된다.", "기사 자료의 한계로 노조의 세 번째 구체적 요구사항을 파악하기 어렵다."], "facts": ["삼성전자 노조는 2026년 3월 18일 쟁의행위 찬성률 93%로 5월 총파업을 결의했다.", "삼성전자 노조의 주요 요구사항은 성과급 상한 폐지 및 초과이익공유제 도입이다.", "삼성전자 파업 시 일일 생산 차질액은 약 1조원대이며, 18일 파업 시 최소 20~30조원 규모의 손실이 예상된다.", "5월 초부터 비반도체 부문 직원들의 탈퇴로 초기업노조 조합원이 4천명대 감소하며 내부 균열이 발생했다.", "노동부 장관과 정부가 중재 역할을 담당하며, 5월 11~12일 사후조정 절차가 진행 중이다."], "timeline": [{"date": "2026-02-19", "event": "초기업노조 급성장에 따른 삼성전자 노사 임단협 협상 시작"}, {"date": "2026-03-04", "event": "삼성전자 노사 임단협 협상 최종 결렬, 파업 위기 우려 대두"}, {"date": "2026-03-08", "event": "노조 \"파업 불참자에 불이익\" 블랙리스트 예고 논란"}, {"date": "2026-03-18", "event": "노조 쟁의행위 93%로 가결, 5월 총파업 돌입 결의"}, {"date": "2026-03-24", "event": "노사 임금 교섭 재개, 실무교섭 및 집중교섭 일정 합의"}, {"date": "2026-04-03", "event": "노사 대체근로 문제로 치열한 협상 진행"}, {"date": "2026-04-17", "event": "삼성전자 노조 창사 이래 첫 '과반노조' 공식 출범, 법원에 쟁의 금지 가처분 신청"}, {"date": "2026-04-23", "event": "노조 4만명 규모 파업 압박 집회 개최"}, {"date": "2026-04-24", "event": "노조 이재용 회장 자택 앞 농성 돌입"}, {"date": "2026-04-28", "event": "파업 주도 노조위원장 동남아 휴가 논란"}, {"date": "2026-05-01", "event": "삼성바이오로직스 노조 첫 전면파업 돌입"}, {"date": "2026-05-03", "event": "초기업노조 하루 1천명 탈퇴 러시 시작, 내부 균열 심화"}, {"date": "2026-05-04", "event": "DX노조 공투본 탈퇴 선언, 노노 분열 가속화"}, {"date": "2026-05-05", "event": "삼성전자 주주단체 \"파업 시 노조원 전원 손배소\" 경고"}, {"date": "2026-05-06", "event": "주주단체 경영진 동시 압박, 파업 시 손해배상 청구 공식화"}, {"date": "2026-05-07", "event": "2·3대 노조 초기업노조 교섭 방식 반발 시작, 노노갈등 격화"}, {"date": "2026-05-08", "event": "삼성전자 노사 사후조정 절차 동의, 11~12일 진행 결정"}, {"date": "2026-05-09", "event": "사후조정 절차 돌입, 2대 노조의 교섭권 회수 요구"}, {"date": "2026-05-10", "event": "삼성전자 직원 호소로 전삼노 협상 주도 분위기 확산"}, {"date": "2026-05-15", "event": "삼성전자 사측 대국민 사과, 기존 협상안 재제시"}, {"date": "2026-05-16", "event": "파업 D-5, 노조 \"파업 이후 협의\" 강경 입장 고수"}], "yt_samsung": [{"title": "삼성 사장단, 대국민 사과…노조 \"파업 끝나고 협상\" / 한국경제TV뉴스", "url": "https://www.youtube.com/watch?v=44sZIf0CfJY", "thumbnail": "https://i.ytimg.com/vi/44sZIf0CfJY/mqdefault.jpg", "view_count": 189252, "channel": "한국경제TV뉴스", "upload_date": ""}, {"title": "[🔴속보] \"삼성전자 노조 성과급 요구는 위법…파업시 전원 손배소\" 주주단체 법적대응 밝혀 / 연합뉴스TV(YonhapnewsTV)", "url": "https://www.youtube.com/watch?v=v22QC4bBwTs", "thumbnail": "https://i.ytimg.com/vi/v22QC4bBwTs/mqdefault.jpg", "view_count": 129700, "channel": "연합뉴스TV", "upload_date": ""}, {"title": "Warning from Samsung Electronics Shareholder Group… \"Will File Damage Claims Against Union Member...", "url": "https://www.youtube.com/watch?v=rJwbIQHMAC8", "thumbnail": "https://i.ytimg.com/vi/rJwbIQHMAC8/mqdefault.jpg", "view_count": 127214, "channel": "JTBC News", "upload_date": ""}, {"title": "파업 안하고 출근할게요\" 삼성전자 신입 MZ가 노조 탈퇴하는 진짜 이유", "url": "https://www.youtube.com/watch?v=vmf6tvlqnZc", "thumbnail": "https://i.ytimg.com/vi/vmf6tvlqnZc/mqdefault.jpg", "view_count": 105354, "channel": "팬더경제학", "upload_date": ""}, {"title": "삼성전자, MZ노조 ‘집단 반발 터졌다’…“7만7000명 급감” 기습 탈퇴 러시”", "url": "https://www.youtube.com/watch?v=CUKtKf6brT0", "thumbnail": "https://i.ytimg.com/vi/CUKtKf6brT0/mqdefault.jpg", "view_count": 47760, "channel": "서울경제TV", "upload_date": ""}], "yt_union": [{"title": "르노삼성 노조 ‘파업권’ 확보…한국GM 노조, 파업 ‘보류’", "url": "https://www.youtube.com/watch?v=s46aKaUbZDg", "thumbnail": "https://i.ytimg.com/vi/s46aKaUbZDg/mqdefault.jpg", "view_count": 136, "channel": "SBS Biz 뉴스", "upload_date": ""}, {"title": "르노삼성 노조, 민주노총 가입 추진…車업계 파업리스크 고조", "url": "https://www.youtube.com/watch?v=jhtrk-7Z9H4", "thumbnail": "https://i.ytimg.com/vi/jhtrk-7Z9H4/mqdefault.jpg", "view_count": 108, "channel": "SBS Biz 뉴스", "upload_date": ""}, {"title": "Samsung Faces Strike Threat as Workers Demand Slice of AI-Driven Profits", "url": "https://www.youtube.com/watch?v=4maioyPi9GM", "thumbnail": "https://i.ytimg.com/vi/4maioyPi9GM/mqdefault.jpg", "view_count": 101, "channel": "itci", "upload_date": ""}], "yt_s_cnt": 43, "yt_u_cnt": 3, "yt_s_pct": 94, "yt_u_pct": 6, "s_media": [["v.daum.net", 16], ["네이트", 6], ["뉴스1", 4], ["조선일보", 4], ["시사저널e", 3], ["데일리안", 3], ["뉴시스", 3], ["중앙일보", 2], ["뉴스웍스", 2], ["Chosunbiz", 2]], "u_media": [["노동자 연대", 3], ["테크M", 1], ["The Korea Herald", 1], ["조선일보", 1], ["인더스트리뉴스", 1], ["Financial Times", 1], ["upi.com", 1], ["Manufacturing.net", 1], ["PCMag", 1], ["부산일보", 1]]};
+const TREND = [{"time": "2026-02-13 12:00:00", "samsung_pct": 0, "union_pct": 100}, {"time": "2026-02-20 12:00:00", "samsung_pct": 8, "union_pct": 92}, {"time": "2026-02-27 12:00:00", "samsung_pct": 10, "union_pct": 90}, {"time": "2026-03-06 12:00:00", "samsung_pct": 55, "union_pct": 45}, {"time": "2026-03-13 12:00:00", "samsung_pct": 12, "union_pct": 88}, {"time": "2026-03-20 12:00:00", "samsung_pct": 12, "union_pct": 88}, {"time": "2026-03-27 12:00:00", "samsung_pct": 29, "union_pct": 71}, {"time": "2026-04-03 12:00:00", "samsung_pct": 43, "union_pct": 57}, {"time": "2026-04-10 12:00:00", "samsung_pct": 54, "union_pct": 46}, {"time": "2026-04-17 12:00:00", "samsung_pct": 36, "union_pct": 64}, {"time": "2026-04-24 12:00:00", "samsung_pct": 35, "union_pct": 65}, {"time": "2026-05-01 12:00:00", "samsung_pct": 73, "union_pct": 27}, {"time": "2026-05-08 12:00:00", "samsung_pct": 14, "union_pct": 86}, {"time": "2026-05-15 21:29:28", "samsung_pct": 85, "union_pct": 15}, {"time": "2026-05-15 12:46:45", "samsung_pct": 85, "union_pct": 15}, {"time": "2026-05-15 13:17:19", "samsung_pct": 84, "union_pct": 16}, {"time": "2026-05-15 23:50:53", "samsung_pct": 80, "union_pct": 20}, {"time": "2026-05-16 00:03:46", "samsung_pct": 95, "union_pct": 5}, {"time": "2026-05-16 02:50:01", "samsung_pct": 98, "union_pct": 2}, {"time": "2026-05-16 03:04:28", "samsung_pct": 98, "union_pct": 2}];
 
 function doLogin(){
   const pw = document.getElementById('pwInput').value;
@@ -341,21 +351,15 @@ function render(){
     document.getElementById('lblU').classList.add('au');
   } else document.getElementById('winB').textContent='50 : 50 균형';
 
-  // 이슈별 논지 매트릭스
-  function issueHTML(issues) {
-    if (!issues || !issues.length) return '<div style="color:#3a3a3a;padding:20px;text-align:center;font-size:11px">데이터 없음</div>';
-    const hdr = `<div class="issue-row issue-hdr-row">
-      <div class="issue-cell issue-lbl-hdr">이슈</div>
-      <div class="issue-cell issue-s-hdr">삼성 측 논지</div>
-      <div class="issue-cell issue-u-hdr">노조 측 논지</div>
-    </div>`;
-    return hdr + issues.map(iss => `<div class="issue-row">
-      <div class="issue-cell issue-lbl">${iss.label}</div>
-      <div class="issue-cell issue-s">${iss.samsung||'-'}</div>
-      <div class="issue-cell issue-u">${iss.union||'-'}</div>
-    </div>`).join('');
+  // 논지 + 구체적 요구사항
+  document.getElementById('sumS').textContent = d.samsung_summary || '-';
+  document.getElementById('sumU').textContent = d.union_summary   || '-';
+  function demandHTML(items) {
+    if (!items || !items.length) return '';
+    return items.map(t => `<li class="demand-item"><span class="demand-bullet"></span>${t}</li>`).join('');
   }
-  document.getElementById('issueTable').innerHTML = issueHTML(d.issues);
+  document.getElementById('demandS').innerHTML = demandHTML(d.samsung_demands);
+  document.getElementById('demandU').innerHTML = demandHTML(d.union_demands);
 
   // 기사 카운트
   document.getElementById('cntS').textContent = '총 '+d.samsung_total+'건';
