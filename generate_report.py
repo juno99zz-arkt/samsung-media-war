@@ -383,7 +383,7 @@ def ai_generate(recent_arts, tl_arts, top_s, top_u):
     recent   = '\n'.join([f"- [{a['published']}] {a['title']}" for a in recent_arts[:25]])
     tl_items = '\n'.join([f"- [{a['published']}] {a['title']}" for a in tl_arts[:120]]) or recent
 
-    # 이슈별 논지 분석
+    # 논지 + 구체적 요구사항
     r1 = client.messages.create(model='claude-haiku-4-5-20251001', max_tokens=1200,
         messages=[{'role':'user','content':f"""삼성전자 노사 갈등 기사 제목들입니다.
 
@@ -392,35 +392,28 @@ def ai_generate(recent_arts, tl_arts, top_s, top_u):
 [노조측 기사]
 {u_items}
 
-아래 4가지 이슈별로 삼성 측과 노조 측의 주요 논지를 각 1~2문장으로 요약하세요.
-해당 이슈 관련 기사가 없으면 "(최근 기사 없음)"으로 표기하세요.
+삼성 측과 노조 측 각각의 주요 논지(2~3문장 전체 입장 요약)와
+구체적 요구/제안 항목(3개)을 작성하세요.
 반드시 아래 형식 그대로 8줄만 출력하세요:
 
-성과급기본급_삼성: (요약)
-성과급기본급_노조: (요약)
-파업합법성_삼성: (요약)
-파업합법성_노조: (요약)
-손배소_삼성: (요약)
-손배소_노조: (요약)
-단체협약_삼성: (요약)
-단체협약_노조: (요약)"""}])
+삼성측논지: (2~3문장)
+삼성측요구1: (핵심 입장/제안 1항목, 한 문장)
+삼성측요구2: (핵심 입장/제안 2항목, 한 문장)
+삼성측요구3: (핵심 입장/제안 3항목, 한 문장)
+노조측논지: (2~3문장)
+노조측요구1: (핵심 요구사항 1항목, 한 문장)
+노조측요구2: (핵심 요구사항 2항목, 한 문장)
+노조측요구3: (핵심 요구사항 3항목, 한 문장)"""}])
     raw1 = r1.content[0].text
-    ISSUE_DEFS = [
-        ('성과급기본급', '성과급 vs 기본급'),
-        ('파업합법성',   '파업 합법성'),
-        ('손배소',       '손배소'),
-        ('단체협약',     '단체협약'),
-    ]
-    issues = []
-    for ikey, ilabel in ISSUE_DEFS:
-        def _parse(k, _raw=raw1):
-            m = re.search(rf'{re.escape(k)}\s*:\s*(.+?)(?=\n\S|\Z)', _raw, re.DOTALL)
-            return m.group(1).strip().replace('\n', ' ') if m else ''
-        issues.append({
-            'label':   ilabel,
-            'samsung': _parse(f'{ikey}_삼성'),
-            'union':   _parse(f'{ikey}_노조'),
-        })
+
+    def _pick(key, _raw=raw1):
+        m = re.search(rf'{re.escape(key)}\s*:\s*(.+?)(?=\n\S|\Z)', _raw, re.DOTALL)
+        return m.group(1).strip().replace('\n', ' ') if m else ''
+
+    s_sum     = _pick('삼성측논지')
+    s_demands = [d for d in [_pick(f'삼성측요구{i}') for i in range(1, 4)] if d]
+    u_sum     = _pick('노조측논지')
+    u_demands = [d for d in [_pick(f'노조측요구{i}') for i in range(1, 4)] if d]
 
     # 팩트 + 주요사건 타임라인
     r2 = client.messages.create(model='claude-haiku-4-5-20251001', max_tokens=2000,
@@ -452,7 +445,7 @@ TIMELINE: YYYY-MM-DD | (사건 요약)
                 d, ev = body.split('|', 1)
                 timeline.append({'date': d.strip(), 'event': ev.strip()})
 
-    return issues, facts, timeline
+    return s_sum, s_demands, u_sum, u_demands, facts, timeline
 
 # ── 추이 저장 ────────────────────────────────────────────────────
 def save_trend(now_str, s_pct, u_pct):
@@ -624,19 +617,21 @@ header{{position:relative;z-index:10;display:flex;align-items:center;justify-con
 .tl-date{{font-size:10px;color:#555;font-weight:600;white-space:nowrap;width:72px;flex-shrink:0;margin-top:2px}}
 .tl-ev{{font-size:11.5px;color:#ccc;line-height:1.6}}
 .scroll-panel{{max-height:480px;overflow-y:auto}}
-/* 이슈별 논지 매트릭스 */
-.issue-sec{{position:relative;z-index:5;padding:0 24px 14px}}
-.issue-table{{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:11px;overflow:hidden}}
-.issue-row{{display:grid;grid-template-columns:110px 1fr 1fr;border-bottom:1px solid rgba(255,255,255,.05)}}
-.issue-row:last-child{{border-bottom:none}}
-.issue-hdr-row{{background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.09)}}
-.issue-cell{{padding:11px 14px;font-size:11.5px;line-height:1.7}}
-.issue-lbl-hdr{{font-size:9px;font-weight:700;letter-spacing:2px;color:#555;text-transform:uppercase;display:flex;align-items:center}}
-.issue-s-hdr{{font-size:9px;font-weight:700;letter-spacing:2px;color:#42a5f5;text-transform:uppercase;border-left:1px solid rgba(255,255,255,.06);display:flex;align-items:center}}
-.issue-u-hdr{{font-size:9px;font-weight:700;letter-spacing:2px;color:#ef5350;text-transform:uppercase;border-left:1px solid rgba(255,255,255,.06);display:flex;align-items:center}}
-.issue-lbl{{font-size:11px;font-weight:700;color:#ffd54f;display:flex;align-items:center}}
-.issue-s{{color:#c5d8f0;border-left:1px solid rgba(255,255,255,.05);background:rgba(21,101,192,.06)}}
-.issue-u{{color:#f0c5c5;border-left:1px solid rgba(255,255,255,.05);background:rgba(198,40,40,.06)}}
+/* summary (논지 + 요구사항) */
+.sum-sec{{position:relative;z-index:5;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 24px 14px}}
+.sum-card{{border-radius:11px;padding:16px 18px}}
+.sum-card.samsung{{background:linear-gradient(135deg,rgba(13,71,161,.18),rgba(13,71,161,.05));border:1px solid rgba(21,101,192,.3)}}
+.sum-card.union{{background:linear-gradient(135deg,rgba(183,28,28,.18),rgba(183,28,28,.05));border:1px solid rgba(198,40,40,.3)}}
+.sum-label{{font-size:9px;font-weight:700;letter-spacing:2px;margin-bottom:9px;text-transform:uppercase}}
+.sum-card.samsung .sum-label{{color:#42a5f5}}.sum-card.union .sum-label{{color:#ef5350}}
+.sum-text{{font-size:12px;line-height:1.8;color:#bbb;margin-bottom:13px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.07)}}
+.demand-label{{font-size:9px;font-weight:700;letter-spacing:1.5px;color:#555;margin-bottom:8px;text-transform:uppercase}}
+.demand-list{{list-style:none;padding:0;margin:0}}
+.demand-item{{display:flex;gap:8px;padding:6px 0;font-size:11.5px;color:#b0b0b0;line-height:1.65;border-bottom:1px solid rgba(255,255,255,.04)}}
+.demand-item:last-child{{border-bottom:none}}
+.demand-bullet{{flex-shrink:0;margin-top:3px;width:5px;height:5px;border-radius:50%}}
+.sum-card.samsung .demand-bullet{{background:#1976d2;box-shadow:0 0 4px #1976d2}}
+.sum-card.union .demand-bullet{{background:#e53935;box-shadow:0 0 4px #e53935}}
 /* article grid */
 .grid{{position:relative;z-index:5;display:grid;grid-template-columns:1fr 1fr;padding:0 16px 24px}}
 .col{{padding:0 12px}}
@@ -710,10 +705,7 @@ header{{position:relative;z-index:10;display:flex;align-items:center;justify-con
   .ft-sec{{grid-template-columns:1fr 1fr}}
 }}
 @media(max-width:768px){{
-  .issue-row,.issue-hdr-row{{grid-template-columns:1fr;display:block}}
-  .issue-s-hdr,.issue-u-hdr,.issue-s,.issue-u{{border-left:none;border-top:1px solid rgba(255,255,255,.05)}}
-  .issue-lbl{{padding-bottom:4px;font-size:10px}}
-  .ft-sec,.yt-sec,.media-sec,.grid{{grid-template-columns:1fr}}
+  .ft-sec,.sum-sec,.yt-sec,.media-sec,.grid{{grid-template-columns:1fr}}
   header{{flex-direction:column;align-items:flex-start;gap:8px}}
   .hdr-r{{flex-wrap:wrap}}
   .main-title{{font-size:26px}}
@@ -787,10 +779,21 @@ header{{position:relative;z-index:10;display:flex;align-items:center;justify-con
   </div>
 </div>
 
-<!-- 이슈별 논지 매트릭스 -->
-<div class="sec-divider"><div class="sec-label">이슈별 주요 논지</div></div>
-<div class="issue-sec">
-  <div class="issue-table" id="issueTable"></div>
+<!-- 논지 + 구체적 요구사항 -->
+<div class="sec-divider"><div class="sec-label">주요 논지 및 구체적 요구사항</div></div>
+<div class="sum-sec">
+  <div class="sum-card samsung">
+    <div class="sum-label">삼성 측 주요 논지</div>
+    <div class="sum-text" id="sumS"></div>
+    <div class="demand-label">구체적 입장 / 제안</div>
+    <ul class="demand-list" id="demandS"></ul>
+  </div>
+  <div class="sum-card union">
+    <div class="sum-label">노조 측 주요 논지</div>
+    <div class="sum-text" id="sumU"></div>
+    <div class="demand-label">구체적 요구사항</div>
+    <ul class="demand-list" id="demandU"></ul>
+  </div>
 </div>
 
 <!-- 뉴스 기사 -->
@@ -897,21 +900,15 @@ function render(){{
     document.getElementById('lblU').classList.add('au');
   }} else document.getElementById('winB').textContent='50 : 50 균형';
 
-  // 이슈별 논지 매트릭스
-  function issueHTML(issues) {{
-    if (!issues || !issues.length) return '<div style="color:#3a3a3a;padding:20px;text-align:center;font-size:11px">데이터 없음</div>';
-    const hdr = `<div class="issue-row issue-hdr-row">
-      <div class="issue-cell issue-lbl-hdr">이슈</div>
-      <div class="issue-cell issue-s-hdr">삼성 측 논지</div>
-      <div class="issue-cell issue-u-hdr">노조 측 논지</div>
-    </div>`;
-    return hdr + issues.map(iss => `<div class="issue-row">
-      <div class="issue-cell issue-lbl">${{iss.label}}</div>
-      <div class="issue-cell issue-s">${{iss.samsung||'-'}}</div>
-      <div class="issue-cell issue-u">${{iss.union||'-'}}</div>
-    </div>`).join('');
+  // 논지 + 구체적 요구사항
+  document.getElementById('sumS').textContent = d.samsung_summary || '-';
+  document.getElementById('sumU').textContent = d.union_summary   || '-';
+  function demandHTML(items) {{
+    if (!items || !items.length) return '';
+    return items.map(t => `<li class="demand-item"><span class="demand-bullet"></span>${{t}}</li>`).join('');
   }}
-  document.getElementById('issueTable').innerHTML = issueHTML(d.issues);
+  document.getElementById('demandS').innerHTML = demandHTML(d.samsung_demands);
+  document.getElementById('demandU').innerHTML = demandHTML(d.union_demands);
 
   // 기사 카운트
   document.getElementById('cntS').textContent = '총 '+d.samsung_total+'건';
@@ -1054,7 +1051,7 @@ def main():
     backfill_trend()
 
     print('Claude 요약 생성 중...')
-    issues, facts, timeline = ai_generate(arts, tl_arts, top_s, top_u)
+    s_sum, s_demands, u_sum, u_demands, facts, timeline = ai_generate(arts, tl_arts, top_s, top_u)
 
     data = {
         'updated_at':      now_str,
@@ -1067,7 +1064,10 @@ def main():
         'total_fetched':   len(arts),
         'samsung_total':   s_cnt,
         'union_total':     u_cnt,
-        'issues':          issues,
+        'samsung_summary': s_sum,
+        'samsung_demands': s_demands,
+        'union_summary':   u_sum,
+        'union_demands':   u_demands,
         'facts':           facts,
         'timeline':        timeline,
         'yt_samsung':      top_s_yt,
