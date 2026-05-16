@@ -741,7 +741,7 @@ header{{position:relative;z-index:10;display:flex;align-items:center;justify-con
 
 <!-- 메인 타이틀 -->
 <div class="main-title-wrap">
-  <div class="main-title">삼성 <span class="vs-word">vs</span> 노조 언론전,<br>누가 이기고 있을까?</div>
+  <div class="main-title">삼성 <span class="vs-word">vs</span> 노조 — 언론전 실시간 분석</div>
   <div class="main-title-sub">실시간 분석 · 뉴스 + 유튜브 통합</div>
 </div>
 
