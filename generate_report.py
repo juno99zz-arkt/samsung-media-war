@@ -657,8 +657,9 @@ header{{position:relative;z-index:10;display:flex;align-items:center;justify-con
 .art-title{{font-size:13px;font-weight:600;color:#e0e0e0;line-height:1.5;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}}
 .art-title a{{color:inherit;text-decoration:none}}.art-title a:hover{{text-decoration:underline}}
 .art-sum{{font-size:11px;color:#606060;line-height:1.6;margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}}
-.art-meta{{display:flex;font-size:10px;color:#484848}}
+.art-meta{{display:flex;font-size:10px;color:#484848;align-items:center}}
 .art-meta .date{{margin-left:auto}}
+.badge-jsn{{display:inline-block;font-size:9px;font-weight:700;letter-spacing:.5px;padding:1px 6px;border-radius:4px;background:rgba(198,40,40,.25);color:#ef9a9a;margin-right:5px}}
 /* YouTube */
 .sec-divider{{position:relative;z-index:5;padding:4px 24px 14px}}
 .sec-divider-line{{border:none;border-top:1px solid rgba(255,255,255,.06);margin-bottom:14px}}
@@ -927,12 +928,16 @@ function render(){{
   // 뉴스 기사
   function artHTML(arts){{
     if(!arts||!arts.length) return '<div style="color:#3a3a3a;padding:24px;text-align:center;font-size:12px">해당 기사 없음</div>';
-    return arts.map((a,i)=>`<div class="art-card">
+    return arts.map((a,i)=>{{
+      const isJsn = a.source==='전삼노';
+      const badge = isJsn ? '<span class="badge-jsn">전삼노 공식</span>' : '';
+      return `<div class="art-card">
       <div class="art-rank">#${{i+1}} 중요도순</div>
       <div class="art-title"><a href="${{a.link}}" target="_blank" rel="noopener">${{a.title}}</a></div>
-      <div class="art-sum">${{a.summary||''}}</div>
-      <div class="art-meta"><span>${{a.source||''}}</span><span class="date">${{a.published||''}}</span></div>
-    </div>`).join('');
+      ${{!isJsn && a.summary ? `<div class="art-sum">${{a.summary}}</div>` : ''}}
+      <div class="art-meta">${{badge}}<span>${{isJsn?'':a.source||''}}</span><span class="date">${{a.published||''}}</span></div>
+    </div>`;
+    }}).join('');
   }}
   document.getElementById('artS').innerHTML = artHTML(d.samsung);
   document.getElementById('artU').innerHTML = artHTML(d.union);
@@ -1024,6 +1029,14 @@ def main():
     print('분류 중...')
     top_s, top_u, s_pct, u_pct, s_cnt, u_cnt = classify(arts)
     print(f'  뉴스 삼성측 {s_cnt}건 / 노조측 {u_cnt}건 | {s_pct}:{u_pct}')
+
+    print('전삼노 홈페이지 수집 중...')
+    jsn_posts = fetch_jeonsamno()
+    jsn_arts  = [{'title': p['title'], 'link': p['link'], 'summary': '전삼노 공식 홍보물',
+                  'published': p['date'], 'source': '전삼노'} for p in jsn_posts[:4]]
+    top_u     = jsn_arts + top_u   # 전삼노 글을 노조측 기사 상단에 배치
+    u_cnt    += len(jsn_arts)
+    print(f'  전삼노 {len(jsn_arts)}건 추가 → 노조측 총 {u_cnt}건')
 
     print('100일 언론사 편향 분석 중...')
     arts_100d = fetch_articles_100days()
