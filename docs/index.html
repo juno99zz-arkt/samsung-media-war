@@ -40,16 +40,28 @@ header{position:relative;z-index:10;display:flex;align-items:center;justify-cont
 .vs-text{font-size:28px;font-weight:900;background:linear-gradient(180deg,#fff,#555);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .vs-sub{font-size:9px;color:#444;letter-spacing:2px;margin-top:2px}
 /* score bar */
-.score-sec{position:relative;z-index:5;padding:0 24px 18px}
-.bar-wrap{position:relative;background:rgba(255,255,255,.05);border-radius:999px;height:40px;overflow:hidden;border:1px solid rgba(255,255,255,.07)}
-.bar-s{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#0d47a1,#1976d2);border-radius:999px 0 0 999px;display:flex;align-items:center;padding-left:14px;transition:width 1.2s cubic-bezier(.22,1,.36,1)}
-.bar-u{position:absolute;right:0;top:0;bottom:0;background:linear-gradient(270deg,#b71c1c,#e53935);border-radius:0 999px 999px 0;display:flex;align-items:center;justify-content:flex-end;padding-right:14px;transition:width 1.2s cubic-bezier(.22,1,.36,1)}
-.bar-pct{font-size:15px;font-weight:800;color:rgba(255,255,255,.9)}
-.score-labels{display:flex;justify-content:space-between;margin-top:7px;padding:0 2px}
-.sl-item{font-size:10px;color:#505050}.sl-item.as{color:#42a5f5;font-weight:600}.sl-item.au{color:#ef5350;font-weight:600}
-.win-badge{text-align:center;margin-top:5px;font-size:12px;color:#888}
-.win-badge .ws{color:#42a5f5;font-weight:700}.win-badge .wu{color:#ef5350;font-weight:700}
-.score-note{text-align:center;font-size:10px;color:#383838;margin-top:5px}
+.score-sec{position:relative;z-index:5;padding:0 24px 10px}
+.score-nums{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:10px}
+.score-num{font-size:12px;color:#555;line-height:1}
+.score-num span{font-size:48px;font-weight:900;letter-spacing:-2px;display:block;line-height:.95}
+.score-num.sn-s span{color:#42a5f5}.score-num.sn-u span{color:#ef5350}
+.score-num.sn-s{text-align:left}.score-num.sn-u{text-align:right}
+.bar-wrap{position:relative;background:rgba(255,255,255,.04);border-radius:999px;height:56px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+.bar-s{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#0d47a1,#1976d2);border-radius:999px 0 0 999px;display:flex;align-items:center;padding-left:14px;transition:width 1.4s cubic-bezier(.22,1,.36,1)}
+.bar-u{position:absolute;right:0;top:0;bottom:0;background:linear-gradient(270deg,#7f0000,#e53935);border-radius:0 999px 999px 0;display:flex;align-items:center;justify-content:flex-end;padding-right:14px;transition:width 1.4s cubic-bezier(.22,1,.36,1)}
+.bar-pct{font-size:11px;font-weight:700;color:rgba(255,255,255,.6);letter-spacing:1px}
+.score-labels{display:flex;justify-content:space-between;margin-top:8px;padding:0 2px}
+.sl-item{font-size:10px;color:#505050}.sl-item.as{color:#42a5f5;font-weight:700}.sl-item.au{color:#ef5350;font-weight:700}
+.win-badge{text-align:center;margin-top:6px;font-size:13px;font-weight:700;color:#888}
+.win-badge .ws{color:#42a5f5}.win-badge .wu{color:#ef5350}
+/* 승기 배너 */
+.win-banner{position:relative;z-index:5;margin:4px 24px 16px;padding:12px 18px;border-radius:9px;font-size:13px;font-weight:600;letter-spacing:.2px;display:flex;align-items:center;gap:10px}
+.win-banner.s-win{background:rgba(13,71,161,.18);border:1px solid rgba(21,101,192,.35);color:#90caf9}
+.win-banner.u-win{background:rgba(183,28,28,.18);border:1px solid rgba(198,40,40,.35);color:#ef9a9a}
+.win-banner.tie{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);color:#777}
+.win-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.win-banner.s-win .win-dot{background:#42a5f5;box-shadow:0 0 6px #42a5f5}
+.win-banner.u-win .win-dot{background:#ef5350;box-shadow:0 0 6px #ef5350}
 /* facts + timeline (2-col) */
 .ft-sec{position:relative;z-index:5;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 24px 18px}
 .panel{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:11px;padding:16px}
@@ -106,40 +118,29 @@ header{position:relative;z-index:10;display:flex;align-items:center;justify-cont
 .art-meta{display:flex;font-size:10px;color:#484848;align-items:center}
 .art-meta .date{margin-left:auto}
 .badge-jsn{display:inline-block;font-size:9px;font-weight:700;letter-spacing:.5px;padding:1px 6px;border-radius:4px;background:rgba(198,40,40,.25);color:#ef9a9a;margin-right:5px}
-/* YouTube */
+/* 섹션 구분선 */
 .sec-divider{position:relative;z-index:5;padding:4px 24px 14px}
-.sec-divider-line{border:none;border-top:1px solid rgba(255,255,255,.06);margin-bottom:14px}
 .sec-label{font-size:10px;font-weight:700;letter-spacing:3px;color:#444;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px}
 .sec-label::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.06)}
-.yt-sec{position:relative;z-index:5;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 24px 18px}
-.yt-col{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:11px;padding:16px}
-.yt-col-hdr{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:7px}
-.yt-col.samsung .yt-col-hdr{color:#42a5f5}.yt-col.union .yt-col-hdr{color:#ef5350}
-.yt-cnt{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:700}
-.yt-col.samsung .yt-cnt{background:rgba(21,101,192,.25);color:#64b5f6}.yt-col.union .yt-cnt{background:rgba(198,40,40,.25);color:#ef9a9a}
-.yt-card{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)}
-.yt-card:last-child{border-bottom:none}
-.yt-thumb{width:96px;height:54px;border-radius:6px;object-fit:cover;flex-shrink:0;background:#111}
-.yt-info{flex:1;min-width:0}
-.yt-title{font-size:12px;font-weight:600;color:#e0e0e0;line-height:1.5;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.yt-title a{color:inherit;text-decoration:none}.yt-title a:hover{text-decoration:underline}
-.yt-meta{font-size:10px;color:#555;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-.yt-views{color:#ffd54f;font-weight:600}
-/* 언론사 랭킹 */
-.media-sec{position:relative;z-index:5;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 24px 18px}
-.media-col{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:11px;padding:16px}
-.media-hdr{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:7px}
-.media-col.samsung .media-hdr{color:#42a5f5}.media-col.union .media-hdr{color:#ef5350}
-.media-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)}
-.media-row:last-child{border-bottom:none}
-.media-rank{font-size:11px;font-weight:700;width:22px;flex-shrink:0;color:#505050}
-.media-rank.top3{color:#ffd54f}
-.media-name{font-size:12px;color:#ccc;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.media-bar-wrap{width:70px;background:rgba(255,255,255,.05);border-radius:3px;height:5px;flex-shrink:0}
-.media-col.samsung .media-bar{background:#1976d2;height:5px;border-radius:3px}
-.media-col.union .media-bar{background:#e53935;height:5px;border-radius:3px}
-.media-cnt{font-size:11px;font-weight:600;width:28px;text-align:right;flex-shrink:0}
-.media-col.samsung .media-cnt{color:#64b5f6}.media-col.union .media-cnt{color:#ef9a9a}
+/* 언론사 편향도 스펙트럼 */
+.spectrum-wrap{position:relative;z-index:5;padding:0 24px 18px}
+.spectrum-panel{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:11px;padding:18px 20px}
+.spectrum-axis{display:flex;justify-content:space-between;font-size:9px;font-weight:700;letter-spacing:2px;margin-bottom:14px}
+.spectrum-axis .u-lbl{color:#ef5350}.spectrum-axis .s-lbl{color:#42a5f5}
+.spectrum-grid{display:grid;grid-template-columns:1fr 1px 1fr;gap:0;align-items:start}
+.spec-divider{background:rgba(255,255,255,.1);align-self:stretch}
+.spec-col{display:flex;flex-direction:column;gap:5px;padding:0 12px}
+.spec-col-u{align-items:flex-end}
+.spec-col-s{align-items:flex-start}
+.spec-row{display:flex;align-items:center;gap:6px;width:100%}
+.spec-row-u{flex-direction:row}
+.spec-row-s{flex-direction:row}
+.spec-name{font-size:10px;color:#777;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:68px;flex-shrink:0}
+.spec-bar{height:10px;border-radius:2px;min-width:4px}
+.spec-bar-u{background:linear-gradient(180deg,#ef5350,rgba(229,57,53,.35))}
+.spec-bar-s{background:linear-gradient(180deg,#1976d2,rgba(25,118,210,.35))}
+.spec-cnt{font-size:9px;color:#505050;flex-shrink:0;min-width:16px}
+.spec-row-u .spec-name{order:2}.spec-row-u .spec-bar{order:1}.spec-row-u .spec-cnt{order:0;text-align:right}
 /* trend */
 .trend-sec{position:relative;z-index:5;padding:0 24px 36px}
 .trend-panel{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:20px 24px}
@@ -148,15 +149,22 @@ header{position:relative;z-index:10;display:flex;align-items:center;justify-cont
 .tl-i{display:flex;align-items:center;gap:5px;font-size:10px;color:#555}
 .tl-dot2{width:8px;height:8px;border-radius:50%}
 .chart-wrap{position:relative;height:180px}
-/* sched */
-.sched{position:relative;z-index:5;display:flex;align-items:center;justify-content:center;gap:5px;padding:10px;font-size:10px;color:#383838;border-top:1px solid rgba(255,255,255,.04)}
-.sched span{color:#505050;font-weight:600}
+/* 인터랙티브 타임라인 */
+.tl-item{display:flex;gap:10px;padding:7px 6px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;border-radius:6px;transition:background .15s}
+.tl-item:last-child{border-bottom:none}
+.tl-item:hover{background:rgba(255,255,255,.04)}
+.tl-item:hover .tl-ev{color:#d0d0d0}
+.tl-item.tl-on{background:rgba(21,101,192,.1)}
+.tl-item.tl-on .tl-dot{background:#42a5f5;box-shadow:0 0 6px #42a5f5;transform:scale(1.3)}
+.tl-item.tl-on .tl-ev{color:#e0e0e0}
 /* responsive */
 @media(max-width:900px){
   .ft-sec{grid-template-columns:1fr 1fr}
 }
 @media(max-width:768px){
-  .ft-sec,.sum-sec,.yt-sec,.media-sec,.grid{grid-template-columns:1fr}
+  .ft-sec,.sum-sec,.grid{grid-template-columns:1fr}
+  .spectrum-grid{grid-template-columns:1fr 1px 1fr}
+  .score-num span{font-size:32px}
   header{flex-direction:column;align-items:flex-start;gap:8px}
   .hdr-r{flex-wrap:wrap}
   .main-title{font-size:26px}
@@ -183,17 +191,13 @@ header{position:relative;z-index:10;display:flex;align-items:center;justify-cont
 <!-- 메인 -->
 <div class="main" id="mainWrap">
 <header>
-  <div class="site-badge">Samsung Media Intelligence</div>
-  <div class="hdr-r">
-    <div class="upd-time">최종 업데이트: 2026-05-17 09:23:07</div>
-    <span class="logout-btn" onclick="doLogout()">로그아웃</span>
-  </div>
+  <div class="upd-time">최종 업데이트: 2026-05-17 09:33:55</div>
+  <span class="logout-btn" onclick="doLogout()">로그아웃</span>
 </header>
 
 <!-- 메인 타이틀 -->
 <div class="main-title-wrap">
   <div class="main-title">삼성 <span class="vs-word">vs</span> 노조 — 언론전 실시간 분석</div>
-  <div class="main-title-sub">실시간 분석 · 뉴스 + 유튜브 통합</div>
 </div>
 
 <!-- VS hero -->
@@ -203,32 +207,24 @@ header{position:relative;z-index:10;display:flex;align-items:center;justify-cont
   <div class="sl union"><span class="name">노조</span><span class="sub">LABOR UNION</span></div>
 </div>
 
-<!-- 점수바 (뉴스+유튜브 통합) -->
+<!-- 점수바 -->
 <div class="score-sec">
+  <div class="score-nums">
+    <div class="score-num sn-s"><span id="numS">-</span>삼성</div>
+    <div class="score-num sn-u">노조<span id="numU">-</span></div>
+  </div>
   <div class="bar-wrap">
-    <div class="bar-s" id="barS" style="width:50%"><span class="bar-pct" id="pctS">-</span></div>
-    <div class="bar-u" id="barU" style="width:50%"><span class="bar-pct" id="pctU">-</span></div>
+    <div class="bar-s" id="barS" style="width:50%"><span class="bar-pct">삼성</span></div>
+    <div class="bar-u" id="barU" style="width:50%"><span class="bar-pct">노조</span></div>
   </div>
   <div class="score-labels">
     <div class="sl-item" id="lblS">삼성 우세</div>
-    <div class="sl-item" id="lblC">빈도+강도 기준</div>
     <div class="sl-item" id="lblU">노조 우세</div>
   </div>
   <div class="win-badge" id="winB"></div>
-  <div class="score-note">뉴스 70% + 유튜브 30% 통합 점수</div>
 </div>
-
-<!-- 팩트 + 타임라인 (2열) -->
-<div class="ft-sec">
-  <div class="panel">
-    <div class="panel-title"><span class="dot-y"></span>실시간 팩트 현황<span style="color:#444;font-size:9px;margin-left:auto">중립·사실 기반</span></div>
-    <div id="factsList"></div>
-  </div>
-  <div class="panel">
-    <div class="panel-title"><span class="dot-g"></span>주요 사건 타임라인<span style="color:#444;font-size:9px;margin-left:auto">2026.02~</span></div>
-    <div id="timelineList" class="scroll-panel"></div>
-  </div>
-</div>
+<!-- 승기 배너 -->
+<div class="win-banner" id="winBanner"></div>
 
 <!-- 논지 + 구체적 요구사항 -->
 <div class="sec-divider"><div class="sec-label">주요 논지 및 구체적 요구사항</div></div>
@@ -247,49 +243,11 @@ header{position:relative;z-index:10;display:flex;align-items:center;justify-cont
   </div>
 </div>
 
-<!-- 뉴스 기사 -->
-<div class="grid">
-  <div class="col samsung">
-    <div class="col-hdr"><div class="dot"></div><div class="col-title">실시간 삼성 측 우세 기사</div><span class="col-cnt" id="cntS">-</span><div class="col-sub">삼성 옹호 / 노조 비판</div></div>
-    <div id="artS"></div>
-  </div>
-  <div class="col union">
-    <div class="col-hdr"><div class="dot"></div><div class="col-title">실시간 노조 측 우세 기사</div><span class="col-cnt" id="cntU">-</span><div class="col-sub">노조 옹호 / 삼성 비판</div></div>
-    <div id="artU"></div>
-  </div>
-</div>
-
-<!-- 유튜브 섹션 -->
-<div class="sec-divider"><div class="sec-label">유튜브 언론전</div></div>
-<div class="yt-sec">
-  <div class="yt-col samsung">
-    <div class="yt-col-hdr"><span class="dot-y" style="background:#42a5f5;box-shadow:0 0 5px #42a5f5"></span>삼성 측 우세 유튜브 TOP 5<span class="yt-cnt" id="cntYtS" style="margin-left:auto">-</span></div>
-    <div id="ytS"></div>
-  </div>
-  <div class="yt-col union">
-    <div class="yt-col-hdr"><span class="dot-y" style="background:#ef5350;box-shadow:0 0 5px #ef5350"></span>노조 측 우세 유튜브 TOP 5<span class="yt-cnt" id="cntYtU" style="margin-left:auto">-</span></div>
-    <div id="ytU"></div>
-  </div>
-</div>
-
-<!-- 언론사 편향도 랭킹 -->
-<div class="sec-divider"><div class="sec-label">언론사 편향도 TOP 10 <span style="font-size:9px;color:#444;letter-spacing:0;font-weight:400">최근 100일 기준</span></div></div>
-<div class="media-sec">
-  <div class="media-col samsung">
-    <div class="media-hdr"><span class="dot-y" style="background:#42a5f5;box-shadow:0 0 5px #42a5f5"></span>삼성 우호 언론사</div>
-    <div id="mediaS"></div>
-  </div>
-  <div class="media-col union">
-    <div class="media-hdr"><span class="dot-y" style="background:#ef5350;box-shadow:0 0 5px #ef5350"></span>노조 우호 언론사</div>
-    <div id="mediaU"></div>
-  </div>
-</div>
-
-<!-- 일자별 추이 -->
+<!-- 일자별 추이 (상단으로 이동) -->
 <div class="sec-divider"><div class="sec-label">일자별 언론전 추이</div></div>
 <div class="trend-sec">
   <div class="trend-panel">
-    <div class="trend-title">뉴스 + 유튜브 통합 추이 (2026.02~)
+    <div class="trend-title">언론 우세 추이 (2026.02~)
       <div class="trend-legend">
         <div class="tl-i"><div class="tl-dot2" style="background:#1976d2"></div>삼성</div>
         <div class="tl-i"><div class="tl-dot2" style="background:#e53935"></div>노조</div>
@@ -299,12 +257,50 @@ header{position:relative;z-index:10;display:flex;align-items:center;justify-cont
   </div>
 </div>
 
-<div class="sched">자동 업데이트: <span>08:00</span>·<span>12:00</span>·<span>16:00</span> KST &nbsp;|&nbsp; 범위: 전일 00:00~현재 국내외 삼성 노조 기사+유튜브</div>
+<!-- 뉴스 기사 -->
+<div class="sec-divider"><div class="sec-label">주요 기사</div></div>
+<div class="grid">
+  <div class="col samsung">
+    <div class="col-hdr"><div class="dot"></div><div class="col-title">삼성 측 우세 기사</div><span class="col-cnt" id="cntS">-</span><div class="col-sub">삼성 옹호 / 노조 비판</div></div>
+    <div id="artS"></div>
+  </div>
+  <div class="col union">
+    <div class="col-hdr"><div class="dot"></div><div class="col-title">노조 측 우세 기사</div><span class="col-cnt" id="cntU">-</span><div class="col-sub">노조 옹호 / 삼성 비판</div></div>
+    <div id="artU"></div>
+  </div>
+</div>
+
+<!-- 언론사 편향도 스펙트럼 -->
+<div class="sec-divider"><div class="sec-label">언론사 편향도 스펙트럼 <span style="font-size:9px;color:#444;letter-spacing:0;font-weight:400">최근 100일 기준</span></div></div>
+<div class="spectrum-wrap">
+  <div class="spectrum-panel">
+    <div class="spectrum-axis"><span class="u-lbl">◀ 노조 우호</span><span class="s-lbl">삼성 우호 ▶</span></div>
+    <div class="spectrum-grid">
+      <div class="spec-col spec-col-u" id="specU"></div>
+      <div class="spec-divider"></div>
+      <div class="spec-col spec-col-s" id="specS"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 팩트 + 타임라인 (하단) -->
+<div class="sec-divider"><div class="sec-label">팩트 현황 및 주요 사건 타임라인</div></div>
+<div class="ft-sec">
+  <div class="panel">
+    <div class="panel-title"><span class="dot-y"></span>실시간 팩트 현황<span style="color:#444;font-size:9px;margin-left:auto">중립·사실 기반</span></div>
+    <div id="factsList"></div>
+  </div>
+  <div class="panel">
+    <div class="panel-title"><span class="dot-g"></span>주요 사건 타임라인<span style="color:#444;font-size:9px;margin-left:auto">2026.02~ · 클릭하여 강조</span></div>
+    <div id="timelineList" class="scroll-panel"></div>
+  </div>
+</div>
+<div style="height:32px"></div>
 </div>
 
 <script>
-const DATA  = {"updated_at": "2026-05-17 09:23:07", "samsung": [{"title": "金총리 \"삼성전자 파업한다면 긴급 조정 등 모든 수단 강구할 것\"", "link": "https://news.google.com/rss/articles/CBMihwFBVV95cUxPcncxWGt1aHdWdFdleDhudGpkZ0JxY1hUdGJFaHMwa0R6X1NsaU9UMkNBdGJEMnZKUHVtUlJwM0dyX2UwT1RrMkdVVkY1Y0RNUDE3LUpJNmV5RlgzWFdjdmFjbEJScTNLNnMtNHVqU2MwM3dQblRYc0NXZFVCRG05ODB2MGU0X0k?oc=5", "summary": "金총리 \"삼성전자 파업한다면 긴급 조정 등 모든 수단 강구할 것\" &nbsp;&nbsp; 조선일보 이재용 “노조와 삼성은 한가족”...‘파업 대응’ 질문엔 답변 안 해 &nbsp;&nbsp; 한겨레 이재용, 삼성전자 노조 파업 사태에 첫 사과 '머리숙여 사죄' &nbsp;&nbsp; BBC 삼성 파업 ‘긴급조정’ 하면 벌어질 일들 &nbsp;&nbsp; KBS 뉴스 삼성전자 총파업 D-5 노조원 4000명 노조 탈퇴…'파업 동력' 시들 &nbsp;&nbsp; 뉴스1 삼성전자 노조, 결국 파업 강행", "published": "2026-05-17 04:55", "source": "조선일보"}, {"title": "김총리 \"100조 피해 현실화 우려…삼성 파업 막을 마지막 기회\" [전문]", "link": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE4tS0tyeHd6azUtNzhwYnFVTEhiS3lna01lT1J2ZDltNHVUZVhvUHR5ZHVtd2lKbG5pUWNPNmEtS016RF9fVjNLemZQUU1Ld1pfLVgzMnBBMW9Yd9IBVEFVX3lxTE1wcnVBeTc3MjdmOVZDamNZWExoUWNVb2VoMzNvVkVSd2dHRjQtUEFPaXBWTXQ5blphdG9zdkFUVGxnUEJZRUpEa0pHTG5NcXZxbkRfdA?oc=5", "summary": "김총리 \"100조 피해 현실화 우려…삼성 파업 막을 마지막 기회\" [전문] &nbsp;&nbsp; 한국경제", "published": "2026-05-17 04:36", "source": "한국경제"}, {"title": "\"위원장만 1000만원?\"…삼성 노조 탈퇴 러시", "link": "https://news.google.com/rss/articles/CBMiT0FVX3lxTE9hZlA0cmlJbklPZHQ2cDBQR0JwbE1vei1TV0duTjBkdVJ5VjFkbnBtcF9ES1gtc1QtaWxZVUhZSXY3Z1JJUUpEZWJzb0oxV1k?oc=5", "summary": "\"위원장만 1000만원?\"…삼성 노조 탈퇴 러시 &nbsp;&nbsp; v.daum.net", "published": "2026-05-17 03:43", "source": "v.daum.net"}, {"title": "\"삼성전자 파업, 긴급조정 거론 말라\"…양대노총 '반발'", "link": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE0wRHBXalcwSVBsUjM4eldmTU80ekt3enM3SDdVQnF2dFhqZDdEZUdLRmRBaTI2NmhMS1gzUjQyOENBV3I5QlFTQ19rTHdPZXZ2V1pmLTFaTzFVQdIBVEFVX3lxTFA5TzhjT3RfOUJvd3BNbzZtTW81dVFtejhFMG5jNjNPVVVKM05GLUZfWFl6emItVElsNXRxRVdtaHpUeXZtUGhJb3U2LWVjcjJQcnlOZw?oc=5", "summary": "\"삼성전자 파업, 긴급조정 거론 말라\"…양대노총 '반발' &nbsp;&nbsp; 한국경제", "published": "2026-05-16 22:23", "source": "한국경제"}, {"title": "靑 \"삼성 파업 피해 막중… 대화 통한 조정 최대한 지원\"", "link": "https://news.google.com/rss/articles/CBMikAFBVV95cUxPRU1SQTNXUUI5aENMQV91X3Eyc2NsMjdDZUcybzRQSV94TE02T0xteFdsLV82MjJQN0ZfQkYtUjFvdzNfNFNwVl9wNVZoMjNmbWR1SjVaeHRGUHlYYVR5cTVYbEVrU0ZOTDRvZ0N3T2R6R0V2bzBXZ2lhRlVGdWFGdm1nOTlHQnBUTnh4em52eFk?oc=5", "summary": "靑 \"삼성 파업 피해 막중… 대화 통한 조정 최대한 지원\" &nbsp;&nbsp; 조선일보", "published": "2026-05-17 06:01", "source": "조선일보"}], "union": [{"title": "삼성 노사 내일 최후 담판…긴급조정권 발동 시 노정관계 경색 우려", "link": "https://www.khan.co.kr/article/202605171528001/?utm_source=khan_rss&utm_medium=rss&utm_campaign=total_news", "summary": "민주노총·한국노총 “노동3권 무력화” 경고2005년 마지막 발동 당시 “노동 탄압” 반발김민석 국무총리가 17일 서울 종로구 정부서울청사에서 삼성전자 파업 관련 대국민 담화를 하고 있다. 왼쪽부터 윤창렬 국무조정실장, 김영훈 고용노동부 장관, 김민석 국무총리. 연합뉴스삼성전자 노사가 중앙노동위원회 사후조정을 재개하기로 한 상황에서 정부의 긴급조정권 발동 가···", "published": "2026-05-17 09:23", "source": "경향신문:전체기사"}], "samsung_pct": 93, "union_pct": 7, "combined_s_pct": 93, "combined_u_pct": 7, "total_fetched": 104, "samsung_total": 13, "union_total": 1, "samsung_summary": "파업으로 인한 국가 경제 피해가 막중하므로 노사 대화를 통한 합의가 절실하며, 정부는 긴급조정 등 모든 수단을 동원하여 파업을 막아야 한다고 주장한다.", "samsung_demands": ["노조의 과도한 임금 인상 요구(위원장 1000만원 등)를 철회하고 합리적 수준의 협상을 제시할 것.", "정부의 긴급조정권 발동을 통해 분쟁을 조정하고 파업을 사전에 차단할 것.", "노조의 불합리한 요구를 철회하고 노사 대화를 통한 자발적 합의 도출할 것."], "union_summary": "파업은 정당한 권리이며, 정부의 긴급조정권 발동은 노정관계 경색을 초래할 수 있으므로 노사 간 최후 담판을 통한 자율적 해결을 추구한다.", "union_demands": ["경영진의 성의 있는 임금 및 처우 개선 조건을 제시할 것.", "정부의 일방적 긴급조정권 발동을 자제하고 노사자율협상을 존중할 것.", "노조 지도부에 대한 부당한 대우를 개선하고 조직 활동 보장을 보장할 것."], "facts": ["삼성전자 노조는 2026년 3월 18일 쟁의행위 찬성률 93.1%로 5월 총파업을 결의했다.", "삼성전자는 2026년 4월 17일 노조의 불법 파업 활동을 막기 위해 법원에 쟁의금지 가처분을 신청했다.", "삼성전자 노조는 성과급 상한 폐지와 SK하이닉스 수준의 보너스 인상을 주요 요구사항으로 제시했다.", "2026년 5월 초 DX노조(비반도체)가 공동투쟁본부에서 탈퇴하면서 노조 내분이 발생했다.", "정부는 2026년 5월 17일 삼성전자 파업 시 긴급조정권 등 모든 대응 수단을 강구하겠다고 공식 발표했다."], "timeline": [{"date": "2026-02-19", "event": "삼성전자 노사 임단협 초기업노조 급성장으로 '안갯속' 진입"}, {"date": "2026-02-22", "event": "삼성전자 임금협상 교착 상태, 생산 차질 우려 제기"}, {"date": "2026-03-04", "event": "삼성전자 노사 협상 최종 결렬, 2년 만의 파업 위기 직면"}, {"date": "2026-03-06", "event": "삼성전자 노조 '생산차질 파업' 예고, SK하이닉스와 동등 대우 요구"}, {"date": "2026-03-08", "event": "삼성전자 노조 파업 불참자에 불이익 예고 및 블랙리스트 논란 발생"}, {"date": "2026-03-10", "event": "삼성전자 노조 18일간 파업 계획 발표, 5월 파업 목표"}, {"date": "2026-03-18", "event": "삼성전자 노조 쟁의행위 찬성률 93.1%로 5월 총파업 결의"}, {"date": "2026-03-24", "event": "삼성전자 노사 임금 교섭 재개"}, {"date": "2026-03-29", "event": "삼성바이오로직스 노조 첫 파업 찬성 결정"}, {"date": "2026-04-03", "event": "삼성전자 노사 '대체근로' 문제로 치열한 협상 전개"}, {"date": "2026-04-16", "event": "삼성전자 법원에 노조의 불법 파업 활동 금지 가처분 신청"}, {"date": "2026-04-17", "event": "삼성전자 첫 '과반노조' 대표권 확보 공식 출범"}, {"date": "2026-04-23", "event": "삼성전자 노조 4만여 명 규모 파업 압박 집회 개최"}, {"date": "2026-04-24", "event": "삼성전자 노조 5월 총파업 수순 진행, 40,000명 대규모 집회"}, {"date": "2026-04-28", "event": "삼성전자 노조위원장 총파업 예고 후 동남아 휴가 논란"}, {"date": "2026-05-01", "event": "삼성바이오로직스 노조 첫 전면파업 돌입"}, {"date": "2026-05-03", "event": "삼성전자 반도체·비반도체 노조 간 갈등 심화"}, {"date": "2026-05-04", "event": "삼성전자 DX노조(비반도체) 공동투쟁본부 탈퇴 선언"}, {"date": "2026-05-05", "event": "삼성전자 주주단체 파업 시 노조원 전원 상대 손배소 경고"}, {"date": "2026-05-07", "event": "삼성전자 노조 내분 격화, 초기업노조 성과급 상한 폐지 유지 결정"}, {"date": "2026-05-17", "event": "정부(국무총리) 삼성전자 파업 시 긴급조정 등 모든 대응 강구 공식 발표"}], "yt_samsung": [{"title": "\"수원전자는 파업 반대합니다\"…삼성 노조원들, 교섭 중단 가처분 신청", "url": "https://www.youtube.com/watch?v=Gb6VX6iq6kU", "thumbnail": "https://i.ytimg.com/vi/Gb6VX6iq6kU/mqdefault.jpg", "view_count": 171331, "channel": "서울경제TV", "upload_date": ""}, {"title": "Warning from Samsung Electronics Shareholder Group… \"Will File Damage Claims Against Union Member...", "url": "https://www.youtube.com/watch?v=rJwbIQHMAC8", "thumbnail": "https://i.ytimg.com/vi/rJwbIQHMAC8/mqdefault.jpg", "view_count": 128249, "channel": "JTBC News", "upload_date": ""}, {"title": "삼성 주주단체 \"노조 파업 강행시 손해배상 청구\" / 연합뉴스TV (YonhapnewsTV)", "url": "https://www.youtube.com/watch?v=lLj7ji0gZsA", "thumbnail": "https://i.ytimg.com/vi/lLj7ji0gZsA/mqdefault.jpg", "view_count": 48442, "channel": "연합뉴스TV", "upload_date": ""}, {"title": "삼성전자, MZ노조 ‘집단 반발 터졌다’…“7만7000명 급감” 기습 탈퇴 러시”", "url": "https://www.youtube.com/watch?v=CUKtKf6brT0", "thumbnail": "https://i.ytimg.com/vi/CUKtKf6brT0/mqdefault.jpg", "view_count": 47999, "channel": "서울경제TV", "upload_date": ""}, {"title": "[🔴속보] 삼성전자 노사 대화 재개한다…사측 대표 교섭위원 교체 / 연합뉴스TV(YonhapnewsTV)", "url": "https://www.youtube.com/watch?v=MyuBlwMOHQU", "thumbnail": "https://i.ytimg.com/vi/MyuBlwMOHQU/mqdefault.jpg", "view_count": 47946, "channel": "연합뉴스TV", "upload_date": ""}], "yt_union": [{"title": "[생생뉴스] 20180605_107차 ILO총회 한국노동대표연설민주노총 김명환 위원장", "url": "https://www.youtube.com/watch?v=5xoeKHbBGJo", "thumbnail": "https://i.ytimg.com/vi/5xoeKHbBGJo/mqdefault.jpg", "view_count": 500, "channel": "민주노총", "upload_date": ""}, {"title": "르노삼성 노조 ‘파업권’ 확보…한국GM 노조, 파업 ‘보류’", "url": "https://www.youtube.com/watch?v=s46aKaUbZDg", "thumbnail": "https://i.ytimg.com/vi/s46aKaUbZDg/mqdefault.jpg", "view_count": 136, "channel": "SBS Biz 뉴스", "upload_date": ""}, {"title": "르노삼성 노조, 민주노총 가입 추진…車업계 파업리스크 고조", "url": "https://www.youtube.com/watch?v=jhtrk-7Z9H4", "thumbnail": "https://i.ytimg.com/vi/jhtrk-7Z9H4/mqdefault.jpg", "view_count": 108, "channel": "SBS Biz 뉴스", "upload_date": ""}, {"title": "Samsung Faces Strike Threat as Workers Demand Slice of AI-Driven Profits", "url": "https://www.youtube.com/watch?v=4maioyPi9GM", "thumbnail": "https://i.ytimg.com/vi/4maioyPi9GM/mqdefault.jpg", "view_count": 108, "channel": "itci", "upload_date": ""}], "yt_s_cnt": 42, "yt_u_cnt": 4, "yt_s_pct": 92, "yt_u_pct": 8, "s_media": [["v.daum.net", 14], ["중앙일보", 5], ["조선일보", 4], ["네이트", 4], ["한국경제", 3], ["뉴스1", 3], ["데일리안", 3], ["시사저널e", 3], ["뉴시스", 3], ["경기일보", 2]], "u_media": [["노동자 연대", 2], ["파이낸셜포스트", 1], ["테크M", 1], ["인더스트리뉴스", 1], ["The Korea Herald", 1], ["MTN 머니투데이방송", 1], ["조선일보", 1], ["upi.com", 1], ["Financial Times", 1], ["PCMag", 1]]};
-const TREND = [{"time": "2026-02-13 12:00:00", "samsung_pct": 0, "union_pct": 100}, {"time": "2026-02-20 12:00:00", "samsung_pct": 8, "union_pct": 92}, {"time": "2026-02-27 12:00:00", "samsung_pct": 10, "union_pct": 90}, {"time": "2026-03-06 12:00:00", "samsung_pct": 55, "union_pct": 45}, {"time": "2026-03-13 12:00:00", "samsung_pct": 12, "union_pct": 88}, {"time": "2026-03-20 12:00:00", "samsung_pct": 12, "union_pct": 88}, {"time": "2026-03-27 12:00:00", "samsung_pct": 29, "union_pct": 71}, {"time": "2026-04-03 12:00:00", "samsung_pct": 43, "union_pct": 57}, {"time": "2026-04-10 12:00:00", "samsung_pct": 54, "union_pct": 46}, {"time": "2026-04-17 12:00:00", "samsung_pct": 36, "union_pct": 64}, {"time": "2026-04-24 12:00:00", "samsung_pct": 35, "union_pct": 65}, {"time": "2026-05-01 12:00:00", "samsung_pct": 73, "union_pct": 27}, {"time": "2026-05-08 12:00:00", "samsung_pct": 14, "union_pct": 86}, {"time": "2026-05-15 21:29:28", "samsung_pct": 85, "union_pct": 15}, {"time": "2026-05-15 12:46:45", "samsung_pct": 85, "union_pct": 15}, {"time": "2026-05-15 13:17:19", "samsung_pct": 84, "union_pct": 16}, {"time": "2026-05-15 23:50:53", "samsung_pct": 80, "union_pct": 20}, {"time": "2026-05-16 00:03:46", "samsung_pct": 95, "union_pct": 5}, {"time": "2026-05-16 02:50:01", "samsung_pct": 98, "union_pct": 2}, {"time": "2026-05-16 03:11:17", "samsung_pct": 98, "union_pct": 2}, {"time": "2026-05-16 07:26:48", "samsung_pct": 98, "union_pct": 2}, {"time": "2026-05-16 09:14:18", "samsung_pct": 98, "union_pct": 2}, {"time": "2026-05-16 10:49:04", "samsung_pct": 98, "union_pct": 2}, {"time": "2026-05-17 07:59:09", "samsung_pct": 91, "union_pct": 9}, {"time": "2026-05-17 09:23:07", "samsung_pct": 93, "union_pct": 7}];
+const DATA  = {"updated_at": "2026-05-17 09:33:55", "samsung": [{"title": "金총리 \"삼성전자 파업한다면 긴급 조정 등 모든 수단 강구할 것\"", "link": "https://news.google.com/rss/articles/CBMihwFBVV95cUxPcncxWGt1aHdWdFdleDhudGpkZ0JxY1hUdGJFaHMwa0R6X1NsaU9UMkNBdGJEMnZKUHVtUlJwM0dyX2UwT1RrMkdVVkY1Y0RNUDE3LUpJNmV5RlgzWFdjdmFjbEJScTNLNnMtNHVqU2MwM3dQblRYc0NXZFVCRG05ODB2MGU0X0k?oc=5", "summary": "金총리 \"삼성전자 파업한다면 긴급 조정 등 모든 수단 강구할 것\" &nbsp;&nbsp; 조선일보 이재용 “노조와 삼성은 한가족”...‘파업 대응’ 질문엔 답변 안 해 &nbsp;&nbsp; 한겨레 [특별 시론] 삼성전자 노조가 파업에 신중해야 할 5가지 이유 &nbsp;&nbsp; 서울경제 삼성 파업 ‘긴급조정’ 하면 벌어질 일들 &nbsp;&nbsp; KBS 뉴스 삼성전자 총파업 D-5 노조원 4000명 노조 탈퇴…'파업 동력' 시들 &nbsp;&nbsp; 뉴스1 삼성전자 노조, 결국 파업 강", "published": "2026-05-17 04:55", "source": "조선일보"}, {"title": "김총리 \"100조 피해 현실화 우려…삼성 파업 막을 마지막 기회\" [전문]", "link": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE4tS0tyeHd6azUtNzhwYnFVTEhiS3lna01lT1J2ZDltNHVUZVhvUHR5ZHVtd2lKbG5pUWNPNmEtS016RF9fVjNLemZQUU1Ld1pfLVgzMnBBMW9Yd9IBVEFVX3lxTE1wcnVBeTc3MjdmOVZDamNZWExoUWNVb2VoMzNvVkVSd2dHRjQtUEFPaXBWTXQ5blphdG9zdkFUVGxnUEJZRUpEa0pHTG5NcXZxbkRfdA?oc=5", "summary": "김총리 \"100조 피해 현실화 우려…삼성 파업 막을 마지막 기회\" [전문] &nbsp;&nbsp; 한국경제", "published": "2026-05-17 04:36", "source": "한국경제"}, {"title": "\"삼성전자 파업, 긴급조정 거론 말라\"…양대노총 '반발'", "link": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE0wRHBXalcwSVBsUjM4eldmTU80ekt3enM3SDdVQnF2dFhqZDdEZUdLRmRBaTI2NmhMS1gzUjQyOENBV3I5QlFTQ19rTHdPZXZ2V1pmLTFaTzFVQdIBVEFVX3lxTFA5TzhjT3RfOUJvd3BNbzZtTW81dVFtejhFMG5jNjNPVVVKM05GLUZfWFl6emItVElsNXRxRVdtaHpUeXZtUGhJb3U2LWVjcjJQcnlOZw?oc=5", "summary": "\"삼성전자 파업, 긴급조정 거론 말라\"…양대노총 '반발' &nbsp;&nbsp; 한국경제", "published": "2026-05-16 22:23", "source": "한국경제"}, {"title": "靑 \"삼성 파업 피해 막중… 대화 통한 조정 최대한 지원\"", "link": "https://news.google.com/rss/articles/CBMikAFBVV95cUxPRU1SQTNXUUI5aENMQV91X3Eyc2NsMjdDZUcybzRQSV94TE02T0xteFdsLV82MjJQN0ZfQkYtUjFvdzNfNFNwVl9wNVZoMjNmbWR1SjVaeHRGUHlYYVR5cTVYbEVrU0ZOTDRvZ0N3T2R6R0V2bzBXZ2lhRlVGdWFGdm1nOTlHQnBUTnh4em52eFk?oc=5", "summary": "靑 \"삼성 파업 피해 막중… 대화 통한 조정 최대한 지원\" &nbsp;&nbsp; 조선일보", "published": "2026-05-17 06:07", "source": "조선일보"}, {"title": "김민석 \"삼성 파업 피해 우려 시 긴급조정 등 모든 수단 강구\"", "link": "https://news.google.com/rss/articles/CBMiW0FVX3lxTE9YWU4tdjBHNHhJakVPWFMxdGVzVzR4UVhTQzFYNDRoSmFDcmM3b2JKM0pBeGcwQjhFMUF5LUJmT01mamR2QkF3WWtJdUlubUZVWGRDTEZDdUlHaDQ?oc=5", "summary": "김민석 \"삼성 파업 피해 우려 시 긴급조정 등 모든 수단 강구\" &nbsp;&nbsp; 경기일보", "published": "2026-05-17 01:50", "source": "경기일보"}], "union": [{"title": "삼성 노사 내일 최후 담판…긴급조정권 발동 시 노정관계 경색 우려", "link": "https://www.khan.co.kr/article/202605171528001/?utm_source=khan_rss&utm_medium=rss&utm_campaign=total_news", "summary": "민주노총·한국노총 “노동3권 무력화” 경고2005년 마지막 발동 당시 “노동 탄압” 반발김민석 국무총리가 17일 서울 종로구 정부서울청사에서 삼성전자 파업 관련 대국민 담화를 하고 있다. 왼쪽부터 윤창렬 국무조정실장, 김영훈 고용노동부 장관, 김민석 국무총리. 연합뉴스삼성전자 노사가 중앙노동위원회 사후조정을 재개하기로 한 상황에서 정부의 긴급조정권 발동 가···", "published": "2026-05-17 09:34", "source": "경향신문:전체기사"}], "samsung_pct": 93, "union_pct": 7, "total_fetched": 101, "samsung_total": 12, "union_total": 1, "samsung_summary": "삼성전자 파업으로 인한 경제적 피해가 100조 원대에 달할 수 있어 국가 경제에 심각한 영향을 미칠 것으로 우려된다. 정부는 파업 피해를 막기 위해 긴급조정 등 모든 수단을 강구할 필요가 있다.", "samsung_demands": ["노사가 대화를 통해 자발적으로 분쟁을 해결하도록 노력해야 한다.", "긴급조정권 발동을 피하고 양측의 합의에 의한 조정을 최대한 지원받아야 한다.", "파업으로 인한 경제적 손실을 최소화하기 위해 현실적 합의점을 모색해야 한다."], "union_summary": "정부의 긴급조정권 발동 위협은 노사자치 원칙을 침해하며 노정관계의 경색을 초래할 수 있다. 노조는 자주적인 교섭을 통해 근로자의 정당한 권리를 쟁취하려고 한다.", "union_demands": ["정부의 긴급조정권 발동 논의를 중단하고 노사 자율교섭에 맡겨야 한다.", "근로자의 정당한 임금 및 처우 개선 요구에 대한 실질적 협상이 이루어져야 한다.", "노정관계의 자주성과 노사자치 원칙이 존중되어야 한다."], "facts": ["삼성전자 노조가 2026년 3월 18일 93.1% 찬성으로 5월 총파업을 의결했다.", "삼성전자는 파업 시 최소 20조~30조원의 생산 차질을 예상하고 있다.", "삼성전자 노조는 성과급 상한제 폐지와 SK하이닉스 수준의 대우를 요구하고 있다.", "정부는 파업 발생 시 긴급조정권 등 모든 수단을 강구하겠다는 입장을 공식 표명했다.", "삼성전자 DX(비반도체) 부문 노조가 5월 초 파업 참여에서 탈퇴하며 노조 내분이 발생했다."], "timeline": [{"date": "2026-02-19", "event": "초기업노조 급성장 속 삼성전자 노사 임단협 협상 진행"}, {"date": "2026-03-04", "event": "삼성전자 노사 임단협 협상 최종 결렬, 2년 만의 파업 사태 우려"}, {"date": "2026-03-06", "event": "삼성전자 노조 생산차질 파업 예고, SK하이닉스와 동등 대우 요구"}, {"date": "2026-03-08", "event": "삼성전자 노조 파업 불참자에 대한 블랙리스트 및 불이익 예고"}, {"date": "2026-03-10", "event": "삼성전자 노조 18일 파업 투표 진행"}, {"date": "2026-03-18", "event": "삼성전자 노조 93.1% 찬성으로 5월 총파업 의결"}, {"date": "2026-03-24", "event": "삼성전자 노사 임금 교섭 재개"}, {"date": "2026-04-03", "event": "삼성전자 노사, 대체근로 문제로 협상 진행"}, {"date": "2026-04-16", "event": "삼성전자 법원에 노조의 불법 파업 차단 가처분 신청"}, {"date": "2026-04-17", "event": "삼성전자 창사 이래 첫 '과반 노조' 공식 출범"}, {"date": "2026-04-23", "event": "삼성전자 노조 4만명 규모 파업 압박 집회 개최"}, {"date": "2026-04-24", "event": "삼성전자 노조 4만명 집결 추진, 피에온택 칩 플랜트 시위"}, {"date": "2026-04-28", "event": "총파업 주도 노조위원장 동남아 휴가 논란"}, {"date": "2026-05-01", "event": "삼성바이오로직스 노조 첫 총파업 개시"}, {"date": "2026-05-03", "event": "삼성전자 노조 내부 균열, 비반도체 부문 탈퇴 러시 시작"}, {"date": "2026-05-04", "event": "삼성전자 DX노조 공동투쟁본부 탈퇴 선언, 노조 연대 붕괴"}, {"date": "2026-05-05", "event": "삼성전자 주주단체 파업 시 노조원 전원 손해배상 소송 경고"}, {"date": "2026-05-06", "event": "삼성전자 주주단체 경영진·노조에 동시 압박, 손배소·해임 추진 경고"}, {"date": "2026-05-16", "event": "이재용 삼성전자 총괄회장 파업 사태에 첫 사과 표명"}, {"date": "2026-05-17", "event": "김민석 국무총리 파업 발생 시 긴급조정권 등 모든 수단 강구 공식 발표"}, {"date": "2026-05-17", "event": "파업 D-4 상황, 노사 '마지막 담판' 진행"}], "media_spectrum": [{"name": "v.daum.net", "s": 16, "u": 1, "bias": 88, "total": 17}, {"name": "조선일보", "s": 5, "u": 1, "bias": 67, "total": 6}, {"name": "중앙일보", "s": 5, "u": 0, "bias": 100, "total": 5}, {"name": "네이트", "s": 4, "u": 0, "bias": 100, "total": 4}, {"name": "시사저널e", "s": 3, "u": 0, "bias": 100, "total": 3}, {"name": "데일리안", "s": 3, "u": 0, "bias": 100, "total": 3}, {"name": "뉴스1", "s": 3, "u": 0, "bias": 100, "total": 3}, {"name": "뉴시스", "s": 3, "u": 0, "bias": 100, "total": 3}, {"name": "이데일리", "s": 2, "u": 1, "bias": 33, "total": 3}, {"name": "한국경제", "s": 3, "u": 0, "bias": 100, "total": 3}, {"name": "뉴시안", "s": 2, "u": 0, "bias": 100, "total": 2}, {"name": "노동자 연대", "s": 0, "u": 2, "bias": -100, "total": 2}, {"name": "Yonhap News Agency", "s": 2, "u": 0, "bias": 100, "total": 2}, {"name": "Chosunbiz", "s": 2, "u": 0, "bias": 100, "total": 2}, {"name": "전자신문", "s": 2, "u": 0, "bias": 100, "total": 2}, {"name": "CEO스코어데일리", "s": 2, "u": 0, "bias": 100, "total": 2}, {"name": "인더스트리뉴스", "s": 1, "u": 1, "bias": 0, "total": 2}, {"name": "경기일보", "s": 2, "u": 0, "bias": 100, "total": 2}, {"name": "파이낸셜포스트", "s": 1, "u": 1, "bias": 0, "total": 2}, {"name": "세계일보", "s": 2, "u": 0, "bias": 100, "total": 2}]};
+const TREND = [{"time": "2026-02-13 12:00:00", "samsung_pct": 0, "union_pct": 100}, {"time": "2026-02-20 12:00:00", "samsung_pct": 8, "union_pct": 92}, {"time": "2026-02-27 12:00:00", "samsung_pct": 10, "union_pct": 90}, {"time": "2026-03-06 12:00:00", "samsung_pct": 55, "union_pct": 45}, {"time": "2026-03-13 12:00:00", "samsung_pct": 12, "union_pct": 88}, {"time": "2026-03-20 12:00:00", "samsung_pct": 12, "union_pct": 88}, {"time": "2026-03-27 12:00:00", "samsung_pct": 29, "union_pct": 71}, {"time": "2026-04-03 12:00:00", "samsung_pct": 43, "union_pct": 57}, {"time": "2026-04-10 12:00:00", "samsung_pct": 54, "union_pct": 46}, {"time": "2026-04-17 12:00:00", "samsung_pct": 36, "union_pct": 64}, {"time": "2026-04-24 12:00:00", "samsung_pct": 35, "union_pct": 65}, {"time": "2026-05-01 12:00:00", "samsung_pct": 73, "union_pct": 27}, {"time": "2026-05-08 12:00:00", "samsung_pct": 14, "union_pct": 86}, {"time": "2026-05-15 21:29:28", "samsung_pct": 85, "union_pct": 15}, {"time": "2026-05-15 12:46:45", "samsung_pct": 85, "union_pct": 15}, {"time": "2026-05-15 13:17:19", "samsung_pct": 84, "union_pct": 16}, {"time": "2026-05-15 23:50:53", "samsung_pct": 80, "union_pct": 20}, {"time": "2026-05-16 00:03:46", "samsung_pct": 95, "union_pct": 5}, {"time": "2026-05-16 02:50:01", "samsung_pct": 98, "union_pct": 2}, {"time": "2026-05-16 03:11:17", "samsung_pct": 98, "union_pct": 2}, {"time": "2026-05-16 07:26:48", "samsung_pct": 98, "union_pct": 2}, {"time": "2026-05-16 09:14:18", "samsung_pct": 98, "union_pct": 2}, {"time": "2026-05-16 10:49:04", "samsung_pct": 98, "union_pct": 2}, {"time": "2026-05-17 07:59:09", "samsung_pct": 91, "union_pct": 9}, {"time": "2026-05-17 09:33:55", "samsung_pct": 93, "union_pct": 7}];
 
 function doLogin(){
   const pw = document.getElementById('pwInput').value;
@@ -334,22 +330,34 @@ function fmtViews(n){
 function render(){
   const d = DATA;
 
-  // 점수바 (통합)
-  const sp = d.combined_s_pct || d.samsung_pct;
-  const up = d.combined_u_pct || d.union_pct;
+  // 점수 숫자 + 바
+  const sp = d.samsung_pct;
+  const up = d.union_pct;
+  document.getElementById('numS').textContent = sp;
+  document.getElementById('numU').textContent = up;
   document.getElementById('barS').style.width = sp+'%';
   document.getElementById('barU').style.width = up+'%';
-  document.getElementById('pctS').textContent = sp+'%';
-  document.getElementById('pctU').textContent = up+'%';
   document.getElementById('lblS').className='sl-item';
   document.getElementById('lblU').className='sl-item';
+  const winB = document.getElementById('winB');
+  const banner = document.getElementById('winBanner');
+  const diff = Math.abs(sp - up);
+  const topSrc = sp>up ? (d.samsung&&d.samsung[0]?d.samsung[0].source:'주요 언론') : (d.union&&d.union[0]?d.union[0].source:'주요 언론');
   if(sp>up){
-    document.getElementById('winB').innerHTML=`현재 <span class="ws">삼성 측</span> 언론 우세 (${sp} : ${up})`;
+    winB.innerHTML=`현재 <span class="ws">삼성 측</span> 언론 우세 (${sp} : ${up})`;
     document.getElementById('lblS').classList.add('as');
+    banner.className='win-banner s-win';
+    banner.innerHTML=`<span class="win-dot"></span>현재 삼성 우세 +${diff}p &nbsp;—&nbsp; ${topSrc} 등 집중 보도`;
   } else if(up>sp){
-    document.getElementById('winB').innerHTML=`현재 <span class="wu">노조 측</span> 언론 우세 (${sp} : ${up})`;
+    winB.innerHTML=`현재 <span class="wu">노조 측</span> 언론 우세 (${sp} : ${up})`;
     document.getElementById('lblU').classList.add('au');
-  } else document.getElementById('winB').textContent='50 : 50 균형';
+    banner.className='win-banner u-win';
+    banner.innerHTML=`<span class="win-dot"></span>현재 노조 우세 +${diff}p &nbsp;—&nbsp; ${topSrc} 등 집중 보도`;
+  } else {
+    winB.textContent='50 : 50 균형';
+    banner.className='win-banner tie';
+    banner.textContent='현재 삼성 vs 노조 — 균형 상태 (50:50)';
+  }
 
   // 논지 + 구체적 요구사항
   document.getElementById('sumS').textContent = d.samsung_summary || '-';
@@ -369,9 +377,13 @@ function render(){
   document.getElementById('factsList').innerHTML=(d.facts||[]).map((f,i)=>
     `<div class="fact-item"><span class="fact-num">${i+1}</span><span class="fact-text">${f}</span></div>`).join('');
 
-  // 주요 타임라인
-  document.getElementById('timelineList').innerHTML=(d.timeline||[]).map(t=>
-    `<div class="tl-item"><div class="tl-dot"></div><div class="tl-date">${t.date}</div><div class="tl-ev">${t.event}</div></div>`).join('');
+  // 주요 타임라인 (클릭 토글)
+  document.getElementById('timelineList').innerHTML=(d.timeline||[]).map((t,i)=>
+    `<div class="tl-item" onclick="this.classList.toggle('tl-on')">
+      <div class="tl-dot"></div>
+      <div class="tl-date">${t.date}</div>
+      <div class="tl-ev">${t.event}</div>
+    </div>`).join('');
 
   // 뉴스 기사
   function artHTML(arts){
@@ -390,45 +402,27 @@ function render(){
   document.getElementById('artS').innerHTML = artHTML(d.samsung);
   document.getElementById('artU').innerHTML = artHTML(d.union);
 
-  // 유튜브 카운트
-  document.getElementById('cntYtS').textContent = '총 '+(d.yt_s_cnt||0)+'건';
-  document.getElementById('cntYtU').textContent = '총 '+(d.yt_u_cnt||0)+'건';
-
-  // 유튜브 카드
-  function ytHTML(vids){
-    if(!vids||!vids.length) return '<div style="color:#3a3a3a;padding:20px;text-align:center;font-size:11px">유튜브 데이터 없음</div>';
-    return vids.map(v=>{
-      const views = fmtViews(v.view_count);
-      return `<div class="yt-card">
-        <img class="yt-thumb" src="${v.thumbnail||''}" alt="" loading="lazy" onerror="this.style.display='none'">
-        <div class="yt-info">
-          <div class="yt-title"><a href="${v.url}" target="_blank" rel="noopener">${v.title}</a></div>
-          <div class="yt-meta">
-            <span>${v.channel||''}</span>
-            ${views?`<span class="yt-views">${views}</span>`:''}
-            <span style="margin-left:auto">${v.upload_date||''}</span>
-          </div>
-        </div>
-      </div>`;
-    }).join('');
-  }
-  document.getElementById('ytS').innerHTML = ytHTML(d.yt_samsung);
-  document.getElementById('ytU').innerHTML = ytHTML(d.yt_union);
-
-  // 언론사 랭킹
-  function mediaHTML(media){
-    if(!media||!media.length) return '<div style="color:#3a3a3a;padding:12px;text-align:center;font-size:11px">데이터 없음</div>';
-    const max = media[0][1];
-    return media.map(([name,cnt],i)=>
-      `<div class="media-row">
-        <span class="media-rank ${i<3?'top3':''}">#${i+1}</span>
-        <span class="media-name">${name}</span>
-        <div class="media-bar-wrap"><div class="media-bar" style="width:${Math.round(cnt/max*100)}%"></div></div>
-        <span class="media-cnt">${cnt}</span>
+  // 언론사 편향도 스펙트럼
+  (function(){
+    const sp = d.media_spectrum || [];
+    if(!sp.length) return;
+    const samsung = sp.filter(s=>s.bias>0).sort((a,b)=>b.s-a.s).slice(0,9);
+    const union   = sp.filter(s=>s.bias<=0).sort((a,b)=>b.u-a.u).slice(0,9);
+    const maxV = Math.max(...sp.map(s=>Math.max(s.s,s.u)), 1);
+    function barW(n){ return Math.max(6, Math.round(n/maxV*100))+'%'; }
+    document.getElementById('specS').innerHTML = samsung.map(s=>
+      `<div class="spec-row spec-row-s">
+        <span class="spec-name">${s.name}</span>
+        <span class="spec-bar spec-bar-s" style="width:${barW(s.s)}"></span>
+        <span class="spec-cnt">${s.s}</span>
       </div>`).join('');
-  }
-  document.getElementById('mediaS').innerHTML = mediaHTML(d.s_media);
-  document.getElementById('mediaU').innerHTML = mediaHTML(d.u_media);
+    document.getElementById('specU').innerHTML = union.map(s=>
+      `<div class="spec-row spec-row-u">
+        <span class="spec-cnt">${s.u}</span>
+        <span class="spec-bar spec-bar-u" style="width:${barW(s.u)}"></span>
+        <span class="spec-name">${s.name}</span>
+      </div>`).join('');
+  })();
 
   // 추이 차트
   if(TREND&&TREND.length>1){
