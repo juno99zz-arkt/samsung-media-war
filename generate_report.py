@@ -344,9 +344,18 @@ def compute_media_bias(articles):
         elif s > 0:
             s_src[src] = s_src.get(src, 0) + 1
             u_src[src] = u_src.get(src, 0) + 1
-    s_media = sorted(s_src.items(), key=lambda x: -x[1])[:10]
-    u_media = sorted(u_src.items(), key=lambda x: -x[1])[:10]
-    return s_media, u_media
+    # 스펙트럼 시각화용 통합 데이터
+    all_srcs = set(s_src.keys()) | set(u_src.keys())
+    spectrum = []
+    for src in all_srcs:
+        sc = s_src.get(src, 0)
+        uc = u_src.get(src, 0)
+        total = sc + uc
+        if total < 2: continue
+        bias = round((sc - uc) / total * 100)   # -100(노조) ~ +100(삼성)
+        spectrum.append({'name': src, 's': sc, 'u': uc, 'bias': bias, 'total': total})
+    spectrum.sort(key=lambda x: -x['total'])
+    return spectrum[:20]
 
 # ── 분류 ─────────────────────────────────────────────────────────
 def classify(articles):
@@ -589,16 +598,28 @@ header{{position:relative;z-index:10;display:flex;align-items:center;justify-con
 .vs-text{{font-size:28px;font-weight:900;background:linear-gradient(180deg,#fff,#555);-webkit-background-clip:text;-webkit-text-fill-color:transparent}}
 .vs-sub{{font-size:9px;color:#444;letter-spacing:2px;margin-top:2px}}
 /* score bar */
-.score-sec{{position:relative;z-index:5;padding:0 24px 18px}}
-.bar-wrap{{position:relative;background:rgba(255,255,255,.05);border-radius:999px;height:40px;overflow:hidden;border:1px solid rgba(255,255,255,.07)}}
-.bar-s{{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#0d47a1,#1976d2);border-radius:999px 0 0 999px;display:flex;align-items:center;padding-left:14px;transition:width 1.2s cubic-bezier(.22,1,.36,1)}}
-.bar-u{{position:absolute;right:0;top:0;bottom:0;background:linear-gradient(270deg,#b71c1c,#e53935);border-radius:0 999px 999px 0;display:flex;align-items:center;justify-content:flex-end;padding-right:14px;transition:width 1.2s cubic-bezier(.22,1,.36,1)}}
-.bar-pct{{font-size:15px;font-weight:800;color:rgba(255,255,255,.9)}}
-.score-labels{{display:flex;justify-content:space-between;margin-top:7px;padding:0 2px}}
-.sl-item{{font-size:10px;color:#505050}}.sl-item.as{{color:#42a5f5;font-weight:600}}.sl-item.au{{color:#ef5350;font-weight:600}}
-.win-badge{{text-align:center;margin-top:5px;font-size:12px;color:#888}}
-.win-badge .ws{{color:#42a5f5;font-weight:700}}.win-badge .wu{{color:#ef5350;font-weight:700}}
-.score-note{{text-align:center;font-size:10px;color:#383838;margin-top:5px}}
+.score-sec{{position:relative;z-index:5;padding:0 24px 10px}}
+.score-nums{{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:10px}}
+.score-num{{font-size:12px;color:#555;line-height:1}}
+.score-num span{{font-size:48px;font-weight:900;letter-spacing:-2px;display:block;line-height:.95}}
+.score-num.sn-s span{{color:#42a5f5}}.score-num.sn-u span{{color:#ef5350}}
+.score-num.sn-s{{text-align:left}}.score-num.sn-u{{text-align:right}}
+.bar-wrap{{position:relative;background:rgba(255,255,255,.04);border-radius:999px;height:56px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}}
+.bar-s{{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#0d47a1,#1976d2);border-radius:999px 0 0 999px;display:flex;align-items:center;padding-left:14px;transition:width 1.4s cubic-bezier(.22,1,.36,1)}}
+.bar-u{{position:absolute;right:0;top:0;bottom:0;background:linear-gradient(270deg,#7f0000,#e53935);border-radius:0 999px 999px 0;display:flex;align-items:center;justify-content:flex-end;padding-right:14px;transition:width 1.4s cubic-bezier(.22,1,.36,1)}}
+.bar-pct{{font-size:11px;font-weight:700;color:rgba(255,255,255,.6);letter-spacing:1px}}
+.score-labels{{display:flex;justify-content:space-between;margin-top:8px;padding:0 2px}}
+.sl-item{{font-size:10px;color:#505050}}.sl-item.as{{color:#42a5f5;font-weight:700}}.sl-item.au{{color:#ef5350;font-weight:700}}
+.win-badge{{text-align:center;margin-top:6px;font-size:13px;font-weight:700;color:#888}}
+.win-badge .ws{{color:#42a5f5}}.win-badge .wu{{color:#ef5350}}
+/* 승기 배너 */
+.win-banner{{position:relative;z-index:5;margin:4px 24px 16px;padding:12px 18px;border-radius:9px;font-size:13px;font-weight:600;letter-spacing:.2px;display:flex;align-items:center;gap:10px}}
+.win-banner.s-win{{background:rgba(13,71,161,.18);border:1px solid rgba(21,101,192,.35);color:#90caf9}}
+.win-banner.u-win{{background:rgba(183,28,28,.18);border:1px solid rgba(198,40,40,.35);color:#ef9a9a}}
+.win-banner.tie{{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);color:#777}}
+.win-dot{{width:8px;height:8px;border-radius:50%;flex-shrink:0}}
+.win-banner.s-win .win-dot{{background:#42a5f5;box-shadow:0 0 6px #42a5f5}}
+.win-banner.u-win .win-dot{{background:#ef5350;box-shadow:0 0 6px #ef5350}}
 /* facts + timeline (2-col) */
 .ft-sec{{position:relative;z-index:5;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 24px 18px}}
 .panel{{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:11px;padding:16px}}
@@ -655,40 +676,29 @@ header{{position:relative;z-index:10;display:flex;align-items:center;justify-con
 .art-meta{{display:flex;font-size:10px;color:#484848;align-items:center}}
 .art-meta .date{{margin-left:auto}}
 .badge-jsn{{display:inline-block;font-size:9px;font-weight:700;letter-spacing:.5px;padding:1px 6px;border-radius:4px;background:rgba(198,40,40,.25);color:#ef9a9a;margin-right:5px}}
-/* YouTube */
+/* 섹션 구분선 */
 .sec-divider{{position:relative;z-index:5;padding:4px 24px 14px}}
-.sec-divider-line{{border:none;border-top:1px solid rgba(255,255,255,.06);margin-bottom:14px}}
 .sec-label{{font-size:10px;font-weight:700;letter-spacing:3px;color:#444;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px}}
 .sec-label::after{{content:'';flex:1;height:1px;background:rgba(255,255,255,.06)}}
-.yt-sec{{position:relative;z-index:5;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 24px 18px}}
-.yt-col{{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:11px;padding:16px}}
-.yt-col-hdr{{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:7px}}
-.yt-col.samsung .yt-col-hdr{{color:#42a5f5}}.yt-col.union .yt-col-hdr{{color:#ef5350}}
-.yt-cnt{{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:700}}
-.yt-col.samsung .yt-cnt{{background:rgba(21,101,192,.25);color:#64b5f6}}.yt-col.union .yt-cnt{{background:rgba(198,40,40,.25);color:#ef9a9a}}
-.yt-card{{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)}}
-.yt-card:last-child{{border-bottom:none}}
-.yt-thumb{{width:96px;height:54px;border-radius:6px;object-fit:cover;flex-shrink:0;background:#111}}
-.yt-info{{flex:1;min-width:0}}
-.yt-title{{font-size:12px;font-weight:600;color:#e0e0e0;line-height:1.5;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}}
-.yt-title a{{color:inherit;text-decoration:none}}.yt-title a:hover{{text-decoration:underline}}
-.yt-meta{{font-size:10px;color:#555;display:flex;flex-wrap:wrap;gap:6px;align-items:center}}
-.yt-views{{color:#ffd54f;font-weight:600}}
-/* 언론사 랭킹 */
-.media-sec{{position:relative;z-index:5;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 24px 18px}}
-.media-col{{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:11px;padding:16px}}
-.media-hdr{{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:7px}}
-.media-col.samsung .media-hdr{{color:#42a5f5}}.media-col.union .media-hdr{{color:#ef5350}}
-.media-row{{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)}}
-.media-row:last-child{{border-bottom:none}}
-.media-rank{{font-size:11px;font-weight:700;width:22px;flex-shrink:0;color:#505050}}
-.media-rank.top3{{color:#ffd54f}}
-.media-name{{font-size:12px;color:#ccc;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
-.media-bar-wrap{{width:70px;background:rgba(255,255,255,.05);border-radius:3px;height:5px;flex-shrink:0}}
-.media-col.samsung .media-bar{{background:#1976d2;height:5px;border-radius:3px}}
-.media-col.union .media-bar{{background:#e53935;height:5px;border-radius:3px}}
-.media-cnt{{font-size:11px;font-weight:600;width:28px;text-align:right;flex-shrink:0}}
-.media-col.samsung .media-cnt{{color:#64b5f6}}.media-col.union .media-cnt{{color:#ef9a9a}}
+/* 언론사 편향도 스펙트럼 */
+.spectrum-wrap{{position:relative;z-index:5;padding:0 24px 18px}}
+.spectrum-panel{{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:11px;padding:18px 20px}}
+.spectrum-axis{{display:flex;justify-content:space-between;font-size:9px;font-weight:700;letter-spacing:2px;margin-bottom:14px}}
+.spectrum-axis .u-lbl{{color:#ef5350}}.spectrum-axis .s-lbl{{color:#42a5f5}}
+.spectrum-grid{{display:grid;grid-template-columns:1fr 1px 1fr;gap:0;align-items:start}}
+.spec-divider{{background:rgba(255,255,255,.1);align-self:stretch}}
+.spec-col{{display:flex;flex-direction:column;gap:5px;padding:0 12px}}
+.spec-col-u{{align-items:flex-end}}
+.spec-col-s{{align-items:flex-start}}
+.spec-row{{display:flex;align-items:center;gap:6px;width:100%}}
+.spec-row-u{{flex-direction:row}}
+.spec-row-s{{flex-direction:row}}
+.spec-name{{font-size:10px;color:#777;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:68px;flex-shrink:0}}
+.spec-bar{{height:10px;border-radius:2px;min-width:4px}}
+.spec-bar-u{{background:linear-gradient(180deg,#ef5350,rgba(229,57,53,.35))}}
+.spec-bar-s{{background:linear-gradient(180deg,#1976d2,rgba(25,118,210,.35))}}
+.spec-cnt{{font-size:9px;color:#505050;flex-shrink:0;min-width:16px}}
+.spec-row-u .spec-name{{order:2}}.spec-row-u .spec-bar{{order:1}}.spec-row-u .spec-cnt{{order:0;text-align:right}}
 /* trend */
 .trend-sec{{position:relative;z-index:5;padding:0 24px 36px}}
 .trend-panel{{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:20px 24px}}
@@ -697,15 +707,22 @@ header{{position:relative;z-index:10;display:flex;align-items:center;justify-con
 .tl-i{{display:flex;align-items:center;gap:5px;font-size:10px;color:#555}}
 .tl-dot2{{width:8px;height:8px;border-radius:50%}}
 .chart-wrap{{position:relative;height:180px}}
-/* sched */
-.sched{{position:relative;z-index:5;display:flex;align-items:center;justify-content:center;gap:5px;padding:10px;font-size:10px;color:#383838;border-top:1px solid rgba(255,255,255,.04)}}
-.sched span{{color:#505050;font-weight:600}}
+/* 인터랙티브 타임라인 */
+.tl-item{{display:flex;gap:10px;padding:7px 6px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;border-radius:6px;transition:background .15s}}
+.tl-item:last-child{{border-bottom:none}}
+.tl-item:hover{{background:rgba(255,255,255,.04)}}
+.tl-item:hover .tl-ev{{color:#d0d0d0}}
+.tl-item.tl-on{{background:rgba(21,101,192,.1)}}
+.tl-item.tl-on .tl-dot{{background:#42a5f5;box-shadow:0 0 6px #42a5f5;transform:scale(1.3)}}
+.tl-item.tl-on .tl-ev{{color:#e0e0e0}}
 /* responsive */
 @media(max-width:900px){{
   .ft-sec{{grid-template-columns:1fr 1fr}}
 }}
 @media(max-width:768px){{
-  .ft-sec,.sum-sec,.yt-sec,.media-sec,.grid{{grid-template-columns:1fr}}
+  .ft-sec,.sum-sec,.grid{{grid-template-columns:1fr}}
+  .spectrum-grid{{grid-template-columns:1fr 1px 1fr}}
+  .score-num span{{font-size:32px}}
   header{{flex-direction:column;align-items:flex-start;gap:8px}}
   .hdr-r{{flex-wrap:wrap}}
   .main-title{{font-size:26px}}
@@ -732,17 +749,13 @@ header{{position:relative;z-index:10;display:flex;align-items:center;justify-con
 <!-- 메인 -->
 <div class="main" id="mainWrap">
 <header>
-  <div class="site-badge">Samsung Media Intelligence</div>
-  <div class="hdr-r">
-    <div class="upd-time">최종 업데이트: {upd}</div>
-    <span class="logout-btn" onclick="doLogout()">로그아웃</span>
-  </div>
+  <div class="upd-time">최종 업데이트: {upd}</div>
+  <span class="logout-btn" onclick="doLogout()">로그아웃</span>
 </header>
 
 <!-- 메인 타이틀 -->
 <div class="main-title-wrap">
   <div class="main-title">삼성 <span class="vs-word">vs</span> 노조 — 언론전 실시간 분석</div>
-  <div class="main-title-sub">실시간 분석 · 뉴스 + 유튜브 통합</div>
 </div>
 
 <!-- VS hero -->
@@ -752,32 +765,24 @@ header{{position:relative;z-index:10;display:flex;align-items:center;justify-con
   <div class="sl union"><span class="name">노조</span><span class="sub">LABOR UNION</span></div>
 </div>
 
-<!-- 점수바 (뉴스+유튜브 통합) -->
+<!-- 점수바 -->
 <div class="score-sec">
+  <div class="score-nums">
+    <div class="score-num sn-s"><span id="numS">-</span>삼성</div>
+    <div class="score-num sn-u">노조<span id="numU">-</span></div>
+  </div>
   <div class="bar-wrap">
-    <div class="bar-s" id="barS" style="width:50%"><span class="bar-pct" id="pctS">-</span></div>
-    <div class="bar-u" id="barU" style="width:50%"><span class="bar-pct" id="pctU">-</span></div>
+    <div class="bar-s" id="barS" style="width:50%"><span class="bar-pct">삼성</span></div>
+    <div class="bar-u" id="barU" style="width:50%"><span class="bar-pct">노조</span></div>
   </div>
   <div class="score-labels">
     <div class="sl-item" id="lblS">삼성 우세</div>
-    <div class="sl-item" id="lblC">빈도+강도 기준</div>
     <div class="sl-item" id="lblU">노조 우세</div>
   </div>
   <div class="win-badge" id="winB"></div>
-  <div class="score-note">뉴스 70% + 유튜브 30% 통합 점수</div>
 </div>
-
-<!-- 팩트 + 타임라인 (2열) -->
-<div class="ft-sec">
-  <div class="panel">
-    <div class="panel-title"><span class="dot-y"></span>실시간 팩트 현황<span style="color:#444;font-size:9px;margin-left:auto">중립·사실 기반</span></div>
-    <div id="factsList"></div>
-  </div>
-  <div class="panel">
-    <div class="panel-title"><span class="dot-g"></span>주요 사건 타임라인<span style="color:#444;font-size:9px;margin-left:auto">2026.02~</span></div>
-    <div id="timelineList" class="scroll-panel"></div>
-  </div>
-</div>
+<!-- 승기 배너 -->
+<div class="win-banner" id="winBanner"></div>
 
 <!-- 논지 + 구체적 요구사항 -->
 <div class="sec-divider"><div class="sec-label">주요 논지 및 구체적 요구사항</div></div>
@@ -796,49 +801,11 @@ header{{position:relative;z-index:10;display:flex;align-items:center;justify-con
   </div>
 </div>
 
-<!-- 뉴스 기사 -->
-<div class="grid">
-  <div class="col samsung">
-    <div class="col-hdr"><div class="dot"></div><div class="col-title">실시간 삼성 측 우세 기사</div><span class="col-cnt" id="cntS">-</span><div class="col-sub">삼성 옹호 / 노조 비판</div></div>
-    <div id="artS"></div>
-  </div>
-  <div class="col union">
-    <div class="col-hdr"><div class="dot"></div><div class="col-title">실시간 노조 측 우세 기사</div><span class="col-cnt" id="cntU">-</span><div class="col-sub">노조 옹호 / 삼성 비판</div></div>
-    <div id="artU"></div>
-  </div>
-</div>
-
-<!-- 유튜브 섹션 -->
-<div class="sec-divider"><div class="sec-label">유튜브 언론전</div></div>
-<div class="yt-sec">
-  <div class="yt-col samsung">
-    <div class="yt-col-hdr"><span class="dot-y" style="background:#42a5f5;box-shadow:0 0 5px #42a5f5"></span>삼성 측 우세 유튜브 TOP 5<span class="yt-cnt" id="cntYtS" style="margin-left:auto">-</span></div>
-    <div id="ytS"></div>
-  </div>
-  <div class="yt-col union">
-    <div class="yt-col-hdr"><span class="dot-y" style="background:#ef5350;box-shadow:0 0 5px #ef5350"></span>노조 측 우세 유튜브 TOP 5<span class="yt-cnt" id="cntYtU" style="margin-left:auto">-</span></div>
-    <div id="ytU"></div>
-  </div>
-</div>
-
-<!-- 언론사 편향도 랭킹 -->
-<div class="sec-divider"><div class="sec-label">언론사 편향도 TOP 10 <span style="font-size:9px;color:#444;letter-spacing:0;font-weight:400">최근 100일 기준</span></div></div>
-<div class="media-sec">
-  <div class="media-col samsung">
-    <div class="media-hdr"><span class="dot-y" style="background:#42a5f5;box-shadow:0 0 5px #42a5f5"></span>삼성 우호 언론사</div>
-    <div id="mediaS"></div>
-  </div>
-  <div class="media-col union">
-    <div class="media-hdr"><span class="dot-y" style="background:#ef5350;box-shadow:0 0 5px #ef5350"></span>노조 우호 언론사</div>
-    <div id="mediaU"></div>
-  </div>
-</div>
-
-<!-- 일자별 추이 -->
+<!-- 일자별 추이 (상단으로 이동) -->
 <div class="sec-divider"><div class="sec-label">일자별 언론전 추이</div></div>
 <div class="trend-sec">
   <div class="trend-panel">
-    <div class="trend-title">뉴스 + 유튜브 통합 추이 (2026.02~)
+    <div class="trend-title">언론 우세 추이 (2026.02~)
       <div class="trend-legend">
         <div class="tl-i"><div class="tl-dot2" style="background:#1976d2"></div>삼성</div>
         <div class="tl-i"><div class="tl-dot2" style="background:#e53935"></div>노조</div>
@@ -848,7 +815,45 @@ header{{position:relative;z-index:10;display:flex;align-items:center;justify-con
   </div>
 </div>
 
-<div class="sched">자동 업데이트: <span>08:00</span>·<span>12:00</span>·<span>16:00</span> KST &nbsp;|&nbsp; 범위: 전일 00:00~현재 국내외 삼성 노조 기사+유튜브</div>
+<!-- 뉴스 기사 -->
+<div class="sec-divider"><div class="sec-label">주요 기사</div></div>
+<div class="grid">
+  <div class="col samsung">
+    <div class="col-hdr"><div class="dot"></div><div class="col-title">삼성 측 우세 기사</div><span class="col-cnt" id="cntS">-</span><div class="col-sub">삼성 옹호 / 노조 비판</div></div>
+    <div id="artS"></div>
+  </div>
+  <div class="col union">
+    <div class="col-hdr"><div class="dot"></div><div class="col-title">노조 측 우세 기사</div><span class="col-cnt" id="cntU">-</span><div class="col-sub">노조 옹호 / 삼성 비판</div></div>
+    <div id="artU"></div>
+  </div>
+</div>
+
+<!-- 언론사 편향도 스펙트럼 -->
+<div class="sec-divider"><div class="sec-label">언론사 편향도 스펙트럼 <span style="font-size:9px;color:#444;letter-spacing:0;font-weight:400">최근 100일 기준</span></div></div>
+<div class="spectrum-wrap">
+  <div class="spectrum-panel">
+    <div class="spectrum-axis"><span class="u-lbl">◀ 노조 우호</span><span class="s-lbl">삼성 우호 ▶</span></div>
+    <div class="spectrum-grid">
+      <div class="spec-col spec-col-u" id="specU"></div>
+      <div class="spec-divider"></div>
+      <div class="spec-col spec-col-s" id="specS"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 팩트 + 타임라인 (하단) -->
+<div class="sec-divider"><div class="sec-label">팩트 현황 및 주요 사건 타임라인</div></div>
+<div class="ft-sec">
+  <div class="panel">
+    <div class="panel-title"><span class="dot-y"></span>실시간 팩트 현황<span style="color:#444;font-size:9px;margin-left:auto">중립·사실 기반</span></div>
+    <div id="factsList"></div>
+  </div>
+  <div class="panel">
+    <div class="panel-title"><span class="dot-g"></span>주요 사건 타임라인<span style="color:#444;font-size:9px;margin-left:auto">2026.02~ · 클릭하여 강조</span></div>
+    <div id="timelineList" class="scroll-panel"></div>
+  </div>
+</div>
+<div style="height:32px"></div>
 </div>
 
 <script>
@@ -883,22 +888,34 @@ function fmtViews(n){{
 function render(){{
   const d = DATA;
 
-  // 점수바 (통합)
-  const sp = d.combined_s_pct || d.samsung_pct;
-  const up = d.combined_u_pct || d.union_pct;
+  // 점수 숫자 + 바
+  const sp = d.samsung_pct;
+  const up = d.union_pct;
+  document.getElementById('numS').textContent = sp;
+  document.getElementById('numU').textContent = up;
   document.getElementById('barS').style.width = sp+'%';
   document.getElementById('barU').style.width = up+'%';
-  document.getElementById('pctS').textContent = sp+'%';
-  document.getElementById('pctU').textContent = up+'%';
   document.getElementById('lblS').className='sl-item';
   document.getElementById('lblU').className='sl-item';
+  const winB = document.getElementById('winB');
+  const banner = document.getElementById('winBanner');
+  const diff = Math.abs(sp - up);
+  const topSrc = sp>up ? (d.samsung&&d.samsung[0]?d.samsung[0].source:'주요 언론') : (d.union&&d.union[0]?d.union[0].source:'주요 언론');
   if(sp>up){{
-    document.getElementById('winB').innerHTML=`현재 <span class="ws">삼성 측</span> 언론 우세 (${{sp}} : ${{up}})`;
+    winB.innerHTML=`현재 <span class="ws">삼성 측</span> 언론 우세 (${{sp}} : ${{up}})`;
     document.getElementById('lblS').classList.add('as');
+    banner.className='win-banner s-win';
+    banner.innerHTML=`<span class="win-dot"></span>현재 삼성 우세 +${{diff}}p &nbsp;—&nbsp; ${{topSrc}} 등 집중 보도`;
   }} else if(up>sp){{
-    document.getElementById('winB').innerHTML=`현재 <span class="wu">노조 측</span> 언론 우세 (${{sp}} : ${{up}})`;
+    winB.innerHTML=`현재 <span class="wu">노조 측</span> 언론 우세 (${{sp}} : ${{up}})`;
     document.getElementById('lblU').classList.add('au');
-  }} else document.getElementById('winB').textContent='50 : 50 균형';
+    banner.className='win-banner u-win';
+    banner.innerHTML=`<span class="win-dot"></span>현재 노조 우세 +${{diff}}p &nbsp;—&nbsp; ${{topSrc}} 등 집중 보도`;
+  }} else {{
+    winB.textContent='50 : 50 균형';
+    banner.className='win-banner tie';
+    banner.textContent='현재 삼성 vs 노조 — 균형 상태 (50:50)';
+  }}
 
   // 논지 + 구체적 요구사항
   document.getElementById('sumS').textContent = d.samsung_summary || '-';
@@ -918,9 +935,13 @@ function render(){{
   document.getElementById('factsList').innerHTML=(d.facts||[]).map((f,i)=>
     `<div class="fact-item"><span class="fact-num">${{i+1}}</span><span class="fact-text">${{f}}</span></div>`).join('');
 
-  // 주요 타임라인
-  document.getElementById('timelineList').innerHTML=(d.timeline||[]).map(t=>
-    `<div class="tl-item"><div class="tl-dot"></div><div class="tl-date">${{t.date}}</div><div class="tl-ev">${{t.event}}</div></div>`).join('');
+  // 주요 타임라인 (클릭 토글)
+  document.getElementById('timelineList').innerHTML=(d.timeline||[]).map((t,i)=>
+    `<div class="tl-item" onclick="this.classList.toggle('tl-on')">
+      <div class="tl-dot"></div>
+      <div class="tl-date">${{t.date}}</div>
+      <div class="tl-ev">${{t.event}}</div>
+    </div>`).join('');
 
   // 뉴스 기사
   function artHTML(arts){{
@@ -939,45 +960,27 @@ function render(){{
   document.getElementById('artS').innerHTML = artHTML(d.samsung);
   document.getElementById('artU').innerHTML = artHTML(d.union);
 
-  // 유튜브 카운트
-  document.getElementById('cntYtS').textContent = '총 '+(d.yt_s_cnt||0)+'건';
-  document.getElementById('cntYtU').textContent = '총 '+(d.yt_u_cnt||0)+'건';
-
-  // 유튜브 카드
-  function ytHTML(vids){{
-    if(!vids||!vids.length) return '<div style="color:#3a3a3a;padding:20px;text-align:center;font-size:11px">유튜브 데이터 없음</div>';
-    return vids.map(v=>{{
-      const views = fmtViews(v.view_count);
-      return `<div class="yt-card">
-        <img class="yt-thumb" src="${{v.thumbnail||''}}" alt="" loading="lazy" onerror="this.style.display='none'">
-        <div class="yt-info">
-          <div class="yt-title"><a href="${{v.url}}" target="_blank" rel="noopener">${{v.title}}</a></div>
-          <div class="yt-meta">
-            <span>${{v.channel||''}}</span>
-            ${{views?`<span class="yt-views">${{views}}</span>`:''}}
-            <span style="margin-left:auto">${{v.upload_date||''}}</span>
-          </div>
-        </div>
-      </div>`;
-    }}).join('');
-  }}
-  document.getElementById('ytS').innerHTML = ytHTML(d.yt_samsung);
-  document.getElementById('ytU').innerHTML = ytHTML(d.yt_union);
-
-  // 언론사 랭킹
-  function mediaHTML(media){{
-    if(!media||!media.length) return '<div style="color:#3a3a3a;padding:12px;text-align:center;font-size:11px">데이터 없음</div>';
-    const max = media[0][1];
-    return media.map(([name,cnt],i)=>
-      `<div class="media-row">
-        <span class="media-rank ${{i<3?'top3':''}}">#${{i+1}}</span>
-        <span class="media-name">${{name}}</span>
-        <div class="media-bar-wrap"><div class="media-bar" style="width:${{Math.round(cnt/max*100)}}%"></div></div>
-        <span class="media-cnt">${{cnt}}</span>
+  // 언론사 편향도 스펙트럼
+  (function(){{
+    const sp = d.media_spectrum || [];
+    if(!sp.length) return;
+    const samsung = sp.filter(s=>s.bias>0).sort((a,b)=>b.s-a.s).slice(0,9);
+    const union   = sp.filter(s=>s.bias<=0).sort((a,b)=>b.u-a.u).slice(0,9);
+    const maxV = Math.max(...sp.map(s=>Math.max(s.s,s.u)), 1);
+    function barW(n){{ return Math.max(6, Math.round(n/maxV*100))+'%'; }}
+    document.getElementById('specS').innerHTML = samsung.map(s=>
+      `<div class="spec-row spec-row-s">
+        <span class="spec-name">${{s.name}}</span>
+        <span class="spec-bar spec-bar-s" style="width:${{barW(s.s)}}"></span>
+        <span class="spec-cnt">${{s.s}}</span>
       </div>`).join('');
-  }}
-  document.getElementById('mediaS').innerHTML = mediaHTML(d.s_media);
-  document.getElementById('mediaU').innerHTML = mediaHTML(d.u_media);
+    document.getElementById('specU').innerHTML = union.map(s=>
+      `<div class="spec-row spec-row-u">
+        <span class="spec-cnt">${{s.u}}</span>
+        <span class="spec-bar spec-bar-u" style="width:${{barW(s.u)}}"></span>
+        <span class="spec-name">${{s.name}}</span>
+      </div>`).join('');
+  }})();
 
   // 추이 차트
   if(TREND&&TREND.length>1){{
@@ -1020,9 +1023,6 @@ def main():
     tl_arts = fetch_timeline_articles()
     print(f'  최근 {len(arts)}건 / 타임라인용 {len(tl_arts)}건')
 
-    print('유튜브 수집 중...')
-    yt_videos = fetch_youtube_videos()
-
     print('분류 중...')
     top_s, top_u, s_pct, u_pct, s_cnt, u_cnt = classify(arts)
     print(f'  뉴스 삼성측 {s_cnt}건 / 노조측 {u_cnt}건 | {s_pct}:{u_pct}')
@@ -1037,15 +1037,8 @@ def main():
 
     print('100일 언론사 편향 분석 중...')
     arts_100d = fetch_articles_100days()
-    s_media, u_media = compute_media_bias(arts_100d)
-    print(f'  100일 기사 {len(arts_100d)}건 → 삼성우호 {len(s_media)}개 언론사 / 노조우호 {len(u_media)}개 언론사')
-
-    top_s_yt, top_u_yt, yt_s_cnt, yt_u_cnt, yt_s_pct, yt_u_pct = classify_youtube(yt_videos)
-    print(f'  유튜브 삼성측 {yt_s_cnt}건 / 노조측 {yt_u_cnt}건 | {yt_s_pct}:{yt_u_pct}')
-
-    # 뉴스 70% + 유튜브 30% 통합 점수
-    combined_s = round(s_pct * 0.7 + yt_s_pct * 0.3)
-    combined_u = 100 - combined_s
+    spectrum  = compute_media_bias(arts_100d)
+    print(f'  100일 기사 {len(arts_100d)}건 → 스펙트럼 {len(spectrum)}개 언론사')
 
     print('역사 추이 백필 확인 중...')
     backfill_trend()
@@ -1059,8 +1052,6 @@ def main():
         'union':           top_u,
         'samsung_pct':     s_pct,
         'union_pct':       u_pct,
-        'combined_s_pct':  combined_s,
-        'combined_u_pct':  combined_u,
         'total_fetched':   len(arts),
         'samsung_total':   s_cnt,
         'union_total':     u_cnt,
@@ -1070,17 +1061,10 @@ def main():
         'union_demands':   u_demands,
         'facts':           facts,
         'timeline':        timeline,
-        'yt_samsung':      top_s_yt,
-        'yt_union':        top_u_yt,
-        'yt_s_cnt':        yt_s_cnt,
-        'yt_u_cnt':        yt_u_cnt,
-        'yt_s_pct':        yt_s_pct,
-        'yt_u_pct':        yt_u_pct,
-        's_media':         s_media,
-        'u_media':         u_media,
+        'media_spectrum':  spectrum,
     }
 
-    save_trend(now_str, combined_s, combined_u)
+    save_trend(now_str, s_pct, u_pct)
     trend_history = []
     if os.path.exists(TREND_FILE):
         with open(TREND_FILE, encoding='utf-8') as f:
