@@ -844,11 +844,11 @@ header{{position:relative;z-index:10;display:flex;align-items:center;justify-con
 <div class="sec-divider"><div class="sec-label">언론사 편향도 스펙트럼 <span style="font-size:9px;color:#444;letter-spacing:0;font-weight:400">최근 100일 기준</span></div></div>
 <div class="spectrum-wrap">
   <div class="spectrum-panel">
-    <div class="spectrum-axis"><span class="u-lbl">◀ 노조 우호</span><span class="s-lbl">삼성 우호 ▶</span></div>
+    <div class="spectrum-axis"><span class="s-lbl">◀ 삼성 우호</span><span class="u-lbl">노조 우호 ▶</span></div>
     <div class="spectrum-grid">
-      <div class="spec-col spec-col-u" id="specU"></div>
-      <div class="spec-divider"></div>
       <div class="spec-col spec-col-s" id="specS"></div>
+      <div class="spec-divider"></div>
+      <div class="spec-col spec-col-u" id="specU"></div>
     </div>
   </div>
 </div>
@@ -980,17 +980,19 @@ function render(){{
     const union   = sp.filter(s=>s.bias<=0).sort((a,b)=>b.u-a.u).slice(0,9);
     const maxV = Math.max(...sp.map(s=>Math.max(s.s,s.u)), 1);
     function barW(n){{ return Math.max(6, Math.round(n/maxV*100))+'%'; }}
+    // 삼성 우호: 왼쪽 열 → 바가 오른쪽(중앙)으로 뻗도록 우측 정렬
     document.getElementById('specS').innerHTML = samsung.map(s=>
-      `<div class="spec-row spec-row-s">
-        <span class="spec-name">${{s.name}}</span>
-        <span class="spec-bar spec-bar-s" style="width:${{barW(s.s)}}"></span>
+      `<div class="spec-row spec-row-s" style="justify-content:flex-end">
         <span class="spec-cnt">${{s.s}}</span>
-      </div>`).join('');
-    document.getElementById('specU').innerHTML = union.map(s=>
-      `<div class="spec-row spec-row-u">
-        <span class="spec-cnt">${{s.u}}</span>
-        <span class="spec-bar spec-bar-u" style="width:${{barW(s.u)}}"></span>
+        <span class="spec-bar spec-bar-s" style="width:${{barW(s.s)}}"></span>
         <span class="spec-name">${{s.name}}</span>
+      </div>`).join('');
+    // 노조 우호: 오른쪽 열 → 바가 왼쪽(중앙)으로 뻗도록 좌측 정렬
+    document.getElementById('specU').innerHTML = union.map(s=>
+      `<div class="spec-row spec-row-u" style="justify-content:flex-start">
+        <span class="spec-name">${{s.name}}</span>
+        <span class="spec-bar spec-bar-u" style="width:${{barW(s.u)}}"></span>
+        <span class="spec-cnt">${{s.u}}</span>
       </div>`).join('');
   }})();
 
