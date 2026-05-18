@@ -385,6 +385,9 @@ def classify(articles):
 
 # ── Claude API ────────────────────────────────────────────────────
 def ai_generate(recent_arts, tl_arts, top_s, top_u):
+    if not ANTHROPIC_API_KEY:
+        print('  [AI] API 키 없음, 스킵')
+        return '', [], '', [], [], []
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
     s_items  = '\n'.join([f"- {a['title']}" for a in top_s]) or '(없음)'
@@ -455,6 +458,13 @@ TIMELINE: YYYY-MM-DD | (사건 요약)
                 timeline.append({'date': d.strip(), 'event': ev.strip()})
 
     return s_sum, s_demands, u_sum, u_demands, facts, timeline
+
+def ai_generate_safe(recent_arts, tl_arts, top_s, top_u):
+    try:
+        return ai_generate(recent_arts, tl_arts, top_s, top_u)
+    except Exception as e:
+        print(f'  [AI] 오류 (크레딧 부족 등): {e}')
+        return '', [], '', [], [], []
 
 # ── 추이 저장 ────────────────────────────────────────────────────
 def save_trend(now_str, s_pct, u_pct):
@@ -1044,7 +1054,7 @@ def main():
     backfill_trend()
 
     print('Claude 요약 생성 중...')
-    s_sum, s_demands, u_sum, u_demands, facts, timeline = ai_generate(arts, tl_arts, top_s, top_u)
+    s_sum, s_demands, u_sum, u_demands, facts, timeline = ai_generate_safe(arts, tl_arts, top_s, top_u)
 
     data = {
         'updated_at':      now_str,
